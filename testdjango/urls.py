@@ -30,7 +30,7 @@ def Websocket_thread():
     loop.run_until_complete(start_server)
     loop.run_forever()
 
-threading.Thread(target=Websocket_thread, args=()).start()
+# threading.Thread(target=Websocket_thread, args=()).start()
 
 
 # work 3: urls
