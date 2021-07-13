@@ -13,13 +13,34 @@ Including another URLconf
     1. Import the include() function: from django.urls import include, path
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
+# work 1:
+from viss.data_generator import *
+getVehicleData()
 
+
+# work 2: websocket integration 
+import threading
+from viss.websocket import *
+
+loop = asyncio.get_event_loop()
+start_server = websockets.serve(accept, "127.0.0.1", 3001)   
+
+def Websocket_thread():
+    print('websocket_thread_initialized')
+    loop.run_until_complete(start_server)
+    loop.run_forever()
+
+threading.Thread(target=Websocket_thread, args=()).start()
+
+
+# work 3: urls
 from django.urls import path,include, re_path
 from rest_framework_simplejwt import views as jwt_views
 
 from django.contrib import admin
 from viss.views import Vehicle
 from viss.views import Vehicle_AverageSpeed
+
 app_name='viss'
 urlpatterns = [
     path('admin', admin.site.urls),

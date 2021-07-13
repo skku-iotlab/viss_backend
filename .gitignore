@@ -1,2 +1,5 @@
-__pycache__
-vss_final.json
+viss/__pycache__/
+
+testdjango/__pycache__/
+
+viss/vss_final.json
