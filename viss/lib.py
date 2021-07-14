@@ -63,7 +63,7 @@ def search_read(url_path, vehicle_data, op_value):
 
     if search_read_type == 'wildcard':
         if not response_data["data"]:
-            #wildcard -> data in dictionary
+            #wildcard -> data in list
             #response_data["data"] list가 비어있을 때 == 아무것도 반환하지 않음 => ERROR
             response_data=error_data
     elif search_read_type == 'no_wildcard':

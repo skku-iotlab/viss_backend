@@ -3,7 +3,7 @@ import json
 import copy
 from django.shortcuts import render
 from datetime import datetime
-from django.http import JsonResponse
+from django.http import JsonResponse, response
 
 from rest_framework.decorators import api_view, permission_classes, authentication_classes
 from rest_framework.permissions import IsAuthenticated
@@ -20,6 +20,8 @@ def Vehicle(request):
     with open('viss/vss_final.json') as generated_data:  # without children directory
         vehicle_data = json.loads(generated_data.read())
     query_params = request.query_params.dict()
+    # print(request.path)
+
     url_path = request.path[1:len(request.path)]
     if request.method == 'GET':
         if url_path[len(url_path)-1] == "/":  # set url end without slash
@@ -51,7 +53,14 @@ def Vehicle(request):
             url_path = url_path[0:len(url_path)-1]
         if "filter" not in query_params:
             response_data = update(url_path, vehicle_data, request.data)
-    return JsonResponse(response_data)
+    print("hi")
+    print(response_data)
+    print(type(response_data))
+    if "Error Code" in response_data:
+        return JsonResponse(response_data,status=404)
+    else:
+        return JsonResponse(response_data,status=200)
+    # return JsonResponse(response_data)
 
 # VISSv2 & VSSv2.1
 
