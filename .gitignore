@@ -3,3 +3,5 @@ viss/__pycache__/
 testdjango/__pycache__/
 
 viss/vss_final.json
+
+secrets.json

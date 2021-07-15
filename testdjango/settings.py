@@ -13,6 +13,7 @@ https://docs.djangoproject.com/en/3.2/ref/settings/
 import os
 from pathlib import Path
 import datetime
+import json
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -22,7 +23,14 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/3.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-9!pbbq1h9*qvbg4@*pvo@uvf@xk34s=0%)*n**0^^dbmnd4w0&'
+
+with open(os.path.join(BASE_DIR, "secrets.json")) as file:
+    secrets = json.load(file)
+    
+def grab_secrets(key):
+    return secrets[key]
+
+SECRET_KEY = grab_secrets("SECRET_KEY")
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
