@@ -14,21 +14,6 @@ def is_request_authorized(json):
     else:
         return False
 
-# def validate_token(token):
-#     print(token)
-#     try:
-#         body = jwt.decode(token, SIMPLE_JWT['SIGNING_KEY'], SIMPLE_JWT['ALGORITHM'])
-#         print(body)
-#         return True
-#     except jwt.ExpiredSignatureError:
-#         print(jwt.ExpiredSignatureError)
-#         return False
-#     except jwt.InvalidTokenError:
-#         print(jwt.InvalidTokenError)
-#         return False
-#     else:
-#         return False
-
 def action_(json):
     return json["action"]
 
@@ -56,76 +41,69 @@ def error_response_maker(number, reason, message):
     new_json["ts"] = datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
     return new_json
 
+def get_response_based_on_request(dl, vehicle_data):
+    if action_(dl) == 'get':
+        if "filter" not in dl:
+            return read(url_path_(dl), vehicle_data)
+        else:
+            if op_type_(dl) == 'paths':
+                return search_read(url_path_(dl), vehicle_data, op_value_(dl))
+            elif op_type_(dl) == 'history':
+                return history_read(url_path_(dl), vehicle_data, op_value_(dl))
+            elif op_type_(dl) == 'metadata':
+                with open('viss/vss_release_2.1.json') as file_origin:
+                    vss_json_file = json.loads(file_origin.read())
+                return service_discovery_read(url_path_(dl), vss_json_file, op_value_(dl))
+    elif action_(dl) == 'set':
+        if "filter" not in dl:
+            return update(url_path_(dl), vehicle_data, dl)
+    else:
+        #subscribe
+        #curve logging subscribe
+        pass
+
 async def accept(websocket, path):
-        print("client connected")
-        while True:
-            data = await websocket.recv(); #wait for client
-            dl = json.loads(data)
-            response_json = {}
+    print("client connected")
+    while True:
+        data = await websocket.recv(); #wait for client
+        dl = json.loads(data)
+        response_json = {}
 
-            with open('viss/vss_final.json') as generated_data:
-                vehicle_data = json.loads(generated_data.read())
+        with open('viss/vss_final.json') as generated_data:
+            vehicle_data = json.loads(generated_data.read())
 
-            action = action_(dl)
-            requestId = requestId_(dl)
-            url_path = url_path_(dl)
+        print('A')
+        if is_request_authorized(dl):
+            print('B')
+            try:
+                body = jwt.decode(dl["authorization"], SIMPLE_JWT['SIGNING_KEY'], SIMPLE_JWT['ALGORITHM'])
+                print(body)
+                print('C')
 
-            print('A')
-            if is_request_authorized(dl):
-                print('B')
-                try:
-                    body = jwt.decode(dl["authorization"], SIMPLE_JWT['SIGNING_KEY'], SIMPLE_JWT['ALGORITHM'])
-                    print(body)
-                    print('C')
-                    # token is exist && token is valid
-                    if action == 'get':
-                        if "filter" not in dl:
-                            response_json = read(url_path, vehicle_data)
-                        else:
-                            op_type = op_type_(dl)
-                            op_value = op_value_(dl)
+                response_json = get_response_based_on_request(dl, vehicle_data)
 
-                            if op_type == 'paths':
-                                response_json = search_read(url_path, vehicle_data, op_value)
-                            elif op_type == 'history':
-                                response_json = history_read(url_path, vehicle_data, op_value)
-                            elif op_type == 'metadata':
-                                with open('viss/vss_release_2.1.json') as file_origin:
-                                    vss_json_file = json.loads(file_origin.read())
-                                response_json = service_discovery_read(url_path, vss_json_file, op_value)
-
-                    elif action == 'set':
-                        if "filter" not in dl:
-                            response_json = update(url_path, vehicle_data, dl)
-                    
-                    else:
-                        #subscribe
-                        #curve logging subscribe
-                        pass
-
-                except jwt.ExpiredSignatureError:
-                    response_json = error_response_maker("401", "token_expired", "Access token has expired.")
-                    
-                except jwt.InvalidTokenError:
-                    response_json = error_response_maker("401", "token_invalid", "Access token is invalid.")
-                    
-                else:
-                    #token_missing
-                    #too_many_attempts
-                    pass
-
+            except jwt.ExpiredSignatureError:
+                response_json = error_response_maker("401", "token_expired", "Access token has expired.")
+                
+            except jwt.InvalidTokenError:
+                response_json = error_response_maker("401", "token_invalid", "Access token is invalid.")
+                
             else:
-                #token not exist
+                #token_missing
+                #too_many_attempts
                 pass
-            
-            if "Error Code" in response_json:
-                response_json = error_response_maker(response_json["Error Code"][0:3], response_json["Error Reason"], response_json["message"])
 
-            final_json = {}
-            final_json["action"] = action
-            final_json["requestId"] = requestId
-            for key in response_json:
-                final_json[key] = response_json[key]
+        else:
+            response_json = get_response_based_on_request(dl, vehicle_data)
+        
+        if "Error Code" in response_json:
+            response_json = error_response_maker(response_json["Error Code"][0:3], response_json["Error Reason"], response_json["message"])
 
-            print(json.dumps(final_json))
-            await websocket.send(json.dumps(final_json))
+        final_json = {}
+        final_json["action"] = action_(dl)
+        final_json["requestId"] = requestId_(dl)
+        for key in response_json:
+            final_json[key] = response_json[key]
+
+        print(json.dumps(final_json))
+        await websocket.send(json.dumps(final_json))
