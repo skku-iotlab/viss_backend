@@ -20,7 +20,7 @@ import threading
 def Datagen_thread():
     genVehicleData()
 
-threading.Thread(target=Datagen_thread, args=()).start()
+threading.Thread(target=Datagen_thread, args=(), daemon=True).start()
 
 # work 2: websocket integration 
 from viss.websocket import *
@@ -33,7 +33,7 @@ def Websocket_thread():
     loop.run_until_complete(start_server)
     loop.run_forever()
 
-threading.Thread(target=Websocket_thread, args=()).start()
+threading.Thread(target=Websocket_thread, args=(), daemon=True).start()
 
 
 # work 3: urls
