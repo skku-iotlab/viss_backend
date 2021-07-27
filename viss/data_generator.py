@@ -5,6 +5,7 @@ import random
 import numpy as np
 from datetime import datetime, timedelta
 import pprint
+import time
 
 # DEV FUNCTION NOT USE : grab all data types(string, uint8, int8, etc.) under given json
 def recursive_get_all_datatype(json):
@@ -128,15 +129,45 @@ def recursive_json_generator(json, ts, granpa, num):
     return temp
 
 def merge_datasets(json_new, json_old):
-    pass
+    temp = dict()
+    json_new_copy = json_new
+    json_old_copy = json_old
+    for a in json_new_copy:
+        if isinstance(json_new_copy[a], dict):
+            temp[a] = merge_datasets(json_new_copy[a], json_old_copy[a])
+            #print(temp[a])
+        elif isinstance(json_new_copy[a], list):
+            temp[a] = []
+            for j in json_new_copy[a]:
+                temp[a].append(j)
+            for k in json_old_copy[a]:
+                temp[a].append(k)
+        else:
+            continue
+    return temp
 
 def getVehicleData():
     with open('viss/vss_release_2.1.json') as file_origin:
         json_file = json.loads(file_origin.read())
         #print(sorted(recursive_get_all_datatype(json_file)))
         ts = datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
-        json_file = recursive_json_generator(json_file, ts, '', 2)
+        result = recursive_json_generator(json_file, ts, '', 1)
         #pprint.pprint(json_file)
         with open('viss/vss_final.json', 'w') as file_final:
-            file_final.write(json.dumps(json_file))
-    return json_file
+            file_final.write(json.dumps(result))
+            print('Vehicle Data Updated:', ts)
+    return result
+
+def genVehicleData():
+    getVehicleData()
+    with open('viss/vss_release_2.1.json') as file_origin:
+        json_file = json.loads(file_origin.read())
+        while(True):
+            time.sleep(10)
+            ts = datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
+            with open('viss/vss_final.json') as generated_data:  # without children directory
+                old = json.loads(generated_data.read())
+                result = merge_datasets(recursive_json_generator(json_file, ts, '', 1), old)
+                with open('viss/vss_final.json', 'w') as file_final:
+                    file_final.write(json.dumps(result))
+                    print('Vehicle Data Updated:', ts)

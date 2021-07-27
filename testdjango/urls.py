@@ -15,11 +15,14 @@ Including another URLconf
 """
 # work 1:
 from viss.data_generator import *
-getVehicleData()
+import threading
 
+def Datagen_thread():
+    genVehicleData()
+
+threading.Thread(target=Datagen_thread, args=()).start()
 
 # work 2: websocket integration 
-import threading
 from viss.websocket import *
 
 loop = asyncio.get_event_loop()

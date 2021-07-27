@@ -35,7 +35,7 @@ def url_path_(json):
 def error_response_maker(number, reason, message):
     new_json = {}
     new_json["error"] = {}
-    new_json["error"]["number"] = number #WEEK POINT: possible hazard
+    new_json["error"]["number"] = number
     new_json["error"]["reason"] = reason
     new_json["error"]["message"] = message
     new_json["ts"] = datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
@@ -57,10 +57,17 @@ def get_response_based_on_request(dl, vehicle_data):
     elif action_(dl) == 'set':
         if "filter" not in dl:
             return update(url_path_(dl), vehicle_data, dl)
-    else:
-        #subscribe
-        #curve logging subscribe
-        pass
+    elif action_(dl) == 'subscribe':
+        if op_value_(dl) == "time-based":
+            return {}
+        elif op_value_(dl) == "range":
+            return {}
+        elif op_value_(dl) == "change":
+            return {}
+        elif op_value_(dl) == "curve-logging":
+            return {}
+    elif action_(dl) == 'unsubscribe':
+        return {}
 
 async def accept(websocket, path):
     print("client connected")
@@ -97,7 +104,7 @@ async def accept(websocket, path):
             response_json = get_response_based_on_request(dl, vehicle_data)
         
         if "Error Code" in response_json:
-            response_json = error_response_maker(response_json["Error Code"][0:3], response_json["Error Reason"], response_json["message"])
+            response_json = error_response_maker(response_json["Error Code"][0:3], response_json["Error Reason"], response_json["message"]) #WEEK POINT: possible hazard
 
         final_json = {}
         final_json["action"] = action_(dl)
