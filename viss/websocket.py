@@ -1,5 +1,4 @@
-import asyncio              
-import websockets          
+import asyncio                    
 import json
 import time
 from datetime import datetime
@@ -8,11 +7,13 @@ import jwt
 from viss.lib import *
 from testdjango.settings import SIMPLE_JWT
 
+def read_vehicle_data():
+    with open('viss/vss_final.json') as generated_data:
+        return json.loads(generated_data.read())
+
 def is_request_authorized(json):
-    if "authorization" in json:
-        return True
-    else:
-        return False
+    if "authorization" in json: return True
+    else: return False
 
 def action_(json):
     return json["action"]
@@ -32,6 +33,12 @@ def url_path_(json):
         url_path = url_path[0:len(url_path)-1]
     return url_path
 
+def default_response_maker(dl):
+    final_json = {}
+    final_json["action"] = action_(dl)
+    final_json["requestId"] = requestId_(dl)
+    return final_json
+
 def error_response_maker(number, reason, message):
     new_json = {}
     new_json["error"] = {}
@@ -41,7 +48,54 @@ def error_response_maker(number, reason, message):
     new_json["ts"] = datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
     return new_json
 
-def get_response_based_on_request(dl, vehicle_data):
+#
+#
+#
+
+async def sub_time_based(dl, websocket):
+    print("now on")
+    while True:        
+        vehicle_data = read_vehicle_data()
+        final_json = default_response_maker(dl)
+        response_json = read(url_path_(dl), vehicle_data)
+        for key in response_json:
+            final_json[key] = response_json[key]
+        await websocket.send(json.dumps(final_json))
+        await asyncio.sleep(10)
+
+async def sub_range(dl, websocket):
+    pass
+
+async def sub_change(dl, websocket):
+    pass
+
+async def sub_curve_logging(dl, websocket):
+    pass
+
+def sub_manager(dl, websocket):
+    if action_(dl) == 'subscribe':
+        if op_value_(dl) == "time-based":
+            task = asyncio.create_task(sub_time_based(dl, websocket))
+
+        elif op_value_(dl) == "range":
+            task = asyncio.create_task(sub_range(dl, websocket))
+
+        elif op_value_(dl) == "change":
+            task = asyncio.create_task(sub_change(dl, websocket))
+
+        elif op_value_(dl) == "curve-logging":
+            task = asyncio.create_task(sub_curve_logging(dl, websocket))
+
+        #task.cancel()
+
+    elif action_(dl) == 'unsubscribe':
+        pass
+
+#
+#
+#
+
+def get_response_based_on_request(dl, vehicle_data, websocket):
     if action_(dl) == 'get':
         if "filter" not in dl:
             return read(url_path_(dl), vehicle_data)
@@ -58,16 +112,11 @@ def get_response_based_on_request(dl, vehicle_data):
         if "filter" not in dl:
             return update(url_path_(dl), vehicle_data, dl)
     elif action_(dl) == 'subscribe':
-        if op_value_(dl) == "time-based":
-            return {}
-        elif op_value_(dl) == "range":
-            return {}
-        elif op_value_(dl) == "change":
-            return {}
-        elif op_value_(dl) == "curve-logging":
-            return {}
-    elif action_(dl) == 'unsubscribe':
+        sub_manager(dl, websocket)
         return {}
+    elif action_(dl) == 'unsubscribe':
+        sub_manager(dl, websocket)
+        return {}       
 
 async def accept(websocket, path):
     print("client connected")
@@ -75,10 +124,7 @@ async def accept(websocket, path):
         data = await websocket.recv(); #wait for client
         dl = json.loads(data)
         response_json = {}
-
-        with open('viss/vss_final.json') as generated_data:
-            vehicle_data = json.loads(generated_data.read())
-
+        vehicle_data = read_vehicle_data()
         print('A')
         if is_request_authorized(dl):
             print('B')
@@ -86,31 +132,21 @@ async def accept(websocket, path):
                 body = jwt.decode(dl["authorization"], SIMPLE_JWT['SIGNING_KEY'], SIMPLE_JWT['ALGORITHM'])
                 print(body)
                 print('C')
-
-                response_json = get_response_based_on_request(dl, vehicle_data)
-
+                response_json = get_response_based_on_request(dl, vehicle_data, websocket)
             except jwt.ExpiredSignatureError:
-                response_json = error_response_maker("401", "token_expired", "Access token has expired.")
-                
+                response_json = error_response_maker("401", "token_expired", "Access token has expired.") 
             except jwt.InvalidTokenError:
-                response_json = error_response_maker("401", "token_invalid", "Access token is invalid.")
-                
+                response_json = error_response_maker("401", "token_invalid", "Access token is invalid.")      
             else:
                 #token_missing
                 #too_many_attempts
                 pass
-
         else:
-            response_json = get_response_based_on_request(dl, vehicle_data)
-        
+            response_json = get_response_based_on_request(dl, vehicle_data, websocket) 
         if "Error Code" in response_json:
             response_json = error_response_maker(response_json["Error Code"][0:3], response_json["Error Reason"], response_json["message"]) #WEEK POINT: possible hazard
-
-        final_json = {}
-        final_json["action"] = action_(dl)
-        final_json["requestId"] = requestId_(dl)
+        final_json = default_response_maker(dl)
         for key in response_json:
             final_json[key] = response_json[key]
-
         print(json.dumps(final_json))
         await websocket.send(json.dumps(final_json))

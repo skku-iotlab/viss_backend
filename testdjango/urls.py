@@ -24,6 +24,7 @@ threading.Thread(target=Datagen_thread, args=(), daemon=True).start()
 
 # work 2: websocket integration 
 from viss.websocket import *
+import websockets
 
 loop = asyncio.get_event_loop()
 start_server = websockets.serve(accept, "127.0.0.1", 3001)   
