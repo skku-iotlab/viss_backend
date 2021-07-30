@@ -1,11 +1,14 @@
 import asyncio                    
 import json
+import uuid
 import time
 from datetime import datetime
 import jwt
 
 from viss.lib import *
 from testdjango.settings import SIMPLE_JWT
+
+working_subscriptionIds = []
 
 def read_vehicle_data():
     with open('viss/vss_final.json') as generated_data:
@@ -52,45 +55,62 @@ def error_response_maker(number, reason, message):
 #
 #
 
-async def sub_time_based(dl, websocket):
+async def sub_time_based(dl, websocket, subscriptionId):
     print("now on")
-    while True:        
+    while subscriptionId in working_subscriptionIds:
         vehicle_data = read_vehicle_data()
         final_json = default_response_maker(dl)
-        response_json = read(url_path_(dl), vehicle_data)
+        print(search_read(url_path_(dl), vehicle_data))
+        response_json = search_read(url_path_(dl), vehicle_data)
         for key in response_json:
             final_json[key] = response_json[key]
         await websocket.send(json.dumps(final_json))
-        await asyncio.sleep(10)
+        await asyncio.sleep(int(dl["filter"]["op-extra"]["period"]))
 
-async def sub_range(dl, websocket):
+async def sub_range(dl, websocket, subscriptionId):
     pass
 
-async def sub_change(dl, websocket):
+async def sub_change(dl, websocket, subscriptionId):
     pass
 
-async def sub_curve_logging(dl, websocket):
+async def sub_curve_logging(dl, websocket, subscriptionId):
     pass
 
-def sub_manager(dl, websocket):
+def sub_manager(dl, vehicle_data, websocket):
     if action_(dl) == 'subscribe':
-        if op_value_(dl) == "time-based":
-            task = asyncio.create_task(sub_time_based(dl, websocket))
 
-        elif op_value_(dl) == "range":
-            task = asyncio.create_task(sub_range(dl, websocket))
+        response_json = search_read(url_path_(dl), vehicle_data)
+        if "Error Code" not in response_json:
+            #success   
+            subscriptionId = str(uuid.uuid4())
+            working_subscriptionIds.append(subscriptionId)
 
-        elif op_value_(dl) == "change":
-            task = asyncio.create_task(sub_change(dl, websocket))
+            if op_value_(dl) == "time-based":
+                task = asyncio.create_task(sub_time_based(dl, websocket, subscriptionId))
 
-        elif op_value_(dl) == "curve-logging":
-            task = asyncio.create_task(sub_curve_logging(dl, websocket))
+            elif op_value_(dl) == "range":
+                task = asyncio.create_task(sub_range(dl, websocket, subscriptionId))
+
+            elif op_value_(dl) == "change":
+                task = asyncio.create_task(sub_change(dl, websocket, subscriptionId))
+
+            elif op_value_(dl) == "curve-logging":
+                task = asyncio.create_task(sub_curve_logging(dl, websocket, subscriptionId))
+
+            return {"subscriptionId" : subscriptionId, "ts" : datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")}
+        else:
+            #fail
+            return response_json
 
         #task.cancel()
 
     elif action_(dl) == 'unsubscribe':
-        pass
-
+        try:
+            subscriptionId = dl["subscriptionId"]
+            working_subscriptionIds.remove(subscriptionId)
+            return {"subscriptionId" : subscriptionId, "ts" : datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")}
+        except:
+            return {"error" : {"number" : "404", "reason" : "invalid_subscriptionId", "message": "The specified subscription was not found"}, "ts" : datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")}
 #
 #
 #
@@ -112,11 +132,10 @@ def get_response_based_on_request(dl, vehicle_data, websocket):
         if "filter" not in dl:
             return update(url_path_(dl), vehicle_data, dl)
     elif action_(dl) == 'subscribe':
-        sub_manager(dl, websocket)
-        return {}
+        #response_json = 
+        return sub_manager(dl, vehicle_data, websocket)
     elif action_(dl) == 'unsubscribe':
-        sub_manager(dl, websocket)
-        return {}       
+        return sub_manager(dl, vehicle_data, websocket)
 
 async def accept(websocket, path):
     print("client connected")

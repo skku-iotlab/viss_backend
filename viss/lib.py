@@ -38,9 +38,9 @@ def read(url_path, vehicle_data):
     return response_data
 
 
-def search_read(url_path, vehicle_data, op_value):
+def search_read(url_path, vehicle_data, op_value = None):
     # sub directory search
-    url_path = url_path + "/" + op_value #make full url path ex. /Vehicle/Cabin/Door/*/*/IsOpen
+    if op_value != None: url_path = url_path + "/" + op_value #make full url path ex. /Vehicle/Cabin/Door/*/*/IsOpen
     path_list = url_path.split("/") # make url path into list to search each level
     data_path = []
     error_data={
@@ -49,7 +49,7 @@ def search_read(url_path, vehicle_data, op_value):
         "message": "The specified data path does not exist."
     }
 
-    if check_wildcard(op_value):
+    if check_wildcard(url_path):
         response_data = {
             'data': [] # wildcard yes -> mutiple return value -> list
         }
