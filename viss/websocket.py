@@ -5,6 +5,7 @@ import time
 from datetime import datetime
 import jwt
 
+from viss.bufferedCurve import * 
 from viss.lib import *
 from testdjango.settings import SIMPLE_JWT
 
@@ -142,7 +143,41 @@ async def sub_change(dl, websocket, subscriptionId):
         await asyncio.sleep(DEFAULT_VEHICLE_DATA_ACCESS_REFRESH_TIME)
 
 async def sub_curve_logging(dl, websocket, subscriptionId):
-    pass
+    final_json = sub_response_maker(dl)
+    max_err = float(dl["filter"]["op-extra"]["max-err"])
+    buf_size = int(dl["filter"]["op-extra"]["buf-size"])
+    data_curve = Curve(bufferSize=buf_size, allowedError=max_err, errorType=Distance.VERTICAL)
+    time_recorder = []
+    data = read(url_path_(dl), read_vehicle_data())
+    await asyncio.sleep(DEFAULT_VEHICLE_DATA_ACCESS_REFRESH_TIME)
+    j = 0
+    while j < buf_size:
+        if not(subscriptionId in working_subscriptionIds):
+            break
+        new_data = read(url_path_(dl), read_vehicle_data())
+        if new_data['data']['dp']['ts'] == data['data']['dp']['ts']:
+            pass
+        else:
+            time_recorder.append(data['data']['dp']['ts'])
+            data_curve.add_point(j, float(data['data']['dp']['value']))
+            print('buffer #', j, float(data['data']['dp']['value']))
+            j += 1
+        data = new_data
+        await asyncio.sleep(DEFAULT_VEHICLE_DATA_ACCESS_REFRESH_TIME)
+    else:
+        output_data = data_curve.get_reduced_points()
+        response_json = {}
+        response_json["data"] = {}
+        response_json["data"]["path"] = url_path_(dl)
+        response_json["data"]["dp"] = []
+        for i in range(0, len(output_data)):
+            dp = {}
+            dp["ts"] = time_recorder[output_data[i][0]]
+            dp["value"] = output_data[i][1]
+            response_json["data"]["dp"].append(dp)
+        for key in response_json:
+            final_json[key] = response_json[key]
+        await websocket.send(json.dumps(final_json))
 
 def sub_manager(dl, vehicle_data, websocket):
     response_json = search_read(url_path_(dl), vehicle_data)

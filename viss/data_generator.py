@@ -163,7 +163,7 @@ def genVehicleData():
     with open('viss/vss_release_2.1.json') as file_origin:
         json_file = json.loads(file_origin.read())
         while(True):
-            time.sleep(10)
+            time.sleep(3)
             ts = datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
             with open('viss/vss_final.json') as generated_data:  # without children directory
                 old = json.loads(generated_data.read())
