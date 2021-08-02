@@ -63,7 +63,6 @@ def error_response_maker(number, reason, message):
 #################
 
 async def sub_time_based(dl, websocket, subscriptionId):
-    print("now on")
     while subscriptionId in working_subscriptionIds:
         final_json = sub_response_maker(dl)
         response_json = search_read(url_path_(dl), read_vehicle_data())
@@ -74,22 +73,16 @@ async def sub_time_based(dl, websocket, subscriptionId):
 
 async def sub_range(dl, websocket, subscriptionId):
     final_json = sub_response_maker(dl)
+    response_json = None
     logic_op = dl["filter"]["op-extra"]["logic-op"]
-    try:
-        boundary = float(dl["filter"]["op-extra"]["boundary"])
-    except:
-        response_json = error_response_maker(400, "filter_invalid_2", "CUSTOM ERROR: Filter requested on invalid type.")
+    boundary = float(dl["filter"]["op-extra"]["boundary"])
     while True:
         if not(subscriptionId in working_subscriptionIds):
             break
-        #print("..........")
-        response_json = None
         data = read(url_path_(dl), read_vehicle_data())
-        try:
-            dp = float(data['data']['dp']['value'])
-        except:
-            response_json = error_response_maker(400, "filter_invalid_3", "CUSTOM ERROR: Filter requested on invalid data path.")
-        #print(dp)
+        dp = float(data['data']['dp']['value'])
+        print("..........") #testcode
+        print(dp) #testcode
         if logic_op == "eq" and dp == boundary:
             response_json = data
         elif logic_op == "ne" and dp != boundary:
@@ -110,46 +103,100 @@ async def sub_range(dl, websocket, subscriptionId):
         await asyncio.sleep(DEFAULT_VEHICLE_DATA_ACCESS_REFRESH_TIME)
 
 async def sub_change(dl, websocket, subscriptionId):
-    pass
+    final_json = sub_response_maker(dl)
+    response_json = None
+    logic_op = dl["filter"]["op-extra"]["logic-op"]
+    diff = float(dl["filter"]["op-extra"]["diff"])
+    data = read(url_path_(dl), read_vehicle_data())
+    await asyncio.sleep(DEFAULT_VEHICLE_DATA_ACCESS_REFRESH_TIME)
+    while True:
+        if not(subscriptionId in working_subscriptionIds):
+            break
+        new_data = read(url_path_(dl), read_vehicle_data())
+        #if data['data']['dp']['value'] == True or data['data']['dp']['value'] == False:
+        #    raise Exception('True of False CANNOT be filtered')
+        if new_data['data']['dp']['ts'] == data['data']['dp']['ts']:
+            pass
+        else:
+            current_diff = float(new_data['data']['dp']['value']) - float(data['data']['dp']['value'])
+            print("..........") #testcode
+            print(current_diff) #testcode
+            if logic_op == "eq" and current_diff == diff:
+                response_json = new_data
+            elif logic_op == "ne" and current_diff != diff:
+                response_json = new_data
+            elif logic_op == "gt" and current_diff > diff:
+                response_json = new_data
+            elif logic_op == "gte" and current_diff >= diff:
+                response_json = new_data
+            elif logic_op == "lt" and current_diff < diff:
+                response_json = new_data
+            elif logic_op == "lte" and current_diff <= diff:
+                response_json = new_data
+            if response_json != None:
+                for key in response_json:
+                    final_json[key] = response_json[key]
+                await websocket.send(json.dumps(final_json))
+                break
+            data = new_data
+        await asyncio.sleep(DEFAULT_VEHICLE_DATA_ACCESS_REFRESH_TIME)
 
 async def sub_curve_logging(dl, websocket, subscriptionId):
     pass
 
 def sub_manager(dl, vehicle_data, websocket):
-    if action_(dl) == 'subscribe':
+    response_json = search_read(url_path_(dl), vehicle_data)
+    if "Error Code" in response_json:
+        return response_json
+    subscriptionId = str(uuid.uuid4())
+    working_subscriptionIds.append(subscriptionId)
 
-        response_json = search_read(url_path_(dl), vehicle_data)
-        if "Error Code" not in response_json:
-            #success   
-            subscriptionId = str(uuid.uuid4())
-            working_subscriptionIds.append(subscriptionId)
+    if op_value_(dl) == "time-based":
+        task = asyncio.create_task(sub_time_based(dl, websocket, subscriptionId))
 
-            if op_value_(dl) == "time-based":
-                task = asyncio.create_task(sub_time_based(dl, websocket, subscriptionId))
-
-            elif op_value_(dl) == "range":
-                task = asyncio.create_task(sub_range(dl, websocket, subscriptionId))
-
-            elif op_value_(dl) == "change":
-                task = asyncio.create_task(sub_change(dl, websocket, subscriptionId))
-
-            elif op_value_(dl) == "curve-logging":
-                task = asyncio.create_task(sub_curve_logging(dl, websocket, subscriptionId))
-
-            return {"subscriptionId" : subscriptionId, "ts" : datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")}
-        else:
-            #fail
-            return response_json
-
-        #task.cancel()
-
-    elif action_(dl) == 'unsubscribe':
-        try:
-            subscriptionId = dl["subscriptionId"]
-            working_subscriptionIds.remove(subscriptionId)
-            return {"subscriptionId" : subscriptionId, "ts" : datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")}
+    elif op_value_(dl) == "range":
+        with open('viss/vss_release_2.1.json') as file_origin:
+            path_list = url_path_(dl).split("/")
+            last_path = path_list.pop()
+            json_file = json.loads(file_origin.read())
+            for i in path_list:
+                json_file  = json_file[i]["children"]
+            if json_file[last_path]["datatype"] in ["boolean", "string", "string[]", "uint8[]"]:
+                return error_response_maker("400", "filter_invalid", "CUSTOM ERROR: Filter requested on invalid type.")
+        try: 
+            float(dl["filter"]["op-extra"]["boundary"])
         except:
-            return {"error" : {"number" : "404", "reason" : "invalid_subscriptionId", "message": "The specified subscription was not found"}, "ts" : datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")}
+            return error_response_maker("400", "bad_request", "The server is unable to fulfil the client request because the request is malformed.")
+        task = asyncio.create_task(sub_range(dl, websocket, subscriptionId))
+
+    elif op_value_(dl) == "change":
+        with open('viss/vss_release_2.1.json') as file_origin:
+            path_list = url_path_(dl).split("/")
+            last_path = path_list.pop()
+            json_file = json.loads(file_origin.read())
+            for i in path_list:
+                json_file  = json_file[i]["children"]
+            if json_file[last_path]["datatype"] in ["boolean", "string", "string[]", "uint8[]"]:
+                return error_response_maker("400", "filter_invalid", "CUSTOM ERROR: Filter requested on invalid type.")
+        try: 
+            float(dl["filter"]["op-extra"]["diff"])
+        except:
+            return error_response_maker("400", "bad_request", "The server is unable to fulfil the client request because the request is malformed.")
+        task = asyncio.create_task(sub_change(dl, websocket, subscriptionId))
+
+    elif op_value_(dl) == "curve-logging":
+        task = asyncio.create_task(sub_curve_logging(dl, websocket, subscriptionId))
+
+    return {"subscriptionId" : subscriptionId, "ts" : datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")}
+    #task.cancel()
+
+def unsub_manager(dl):
+    try:
+        subscriptionId = dl["subscriptionId"]
+        working_subscriptionIds.remove(subscriptionId)
+        return {"subscriptionId" : subscriptionId, "ts" : datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")}
+    except:
+        return {"error" : {"number" : "404", "reason" : "invalid_subscriptionId", "message": "The specified subscription was not found"}, "ts" : datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")}
 #
 #
 #
@@ -171,10 +218,9 @@ def get_response_based_on_request(dl, vehicle_data, websocket):
         if "filter" not in dl:
             return update(url_path_(dl), vehicle_data, dl)
     elif action_(dl) == 'subscribe':
-        #response_json = 
         return sub_manager(dl, vehicle_data, websocket)
     elif action_(dl) == 'unsubscribe':
-        return sub_manager(dl, vehicle_data, websocket)
+        return unsub_manager(dl)
 
 async def accept(websocket, path):
     print("client connected")
@@ -183,13 +229,13 @@ async def accept(websocket, path):
         dl = json.loads(data)
         response_json = {}
         vehicle_data = read_vehicle_data()
-        print('A')
+        print('A') #
         if is_request_authorized(dl):
-            print('B')
+            print('B') #
             try:
                 body = jwt.decode(dl["authorization"], SIMPLE_JWT['SIGNING_KEY'], SIMPLE_JWT['ALGORITHM'])
                 print(body)
-                print('C')
+                print('C') #
                 response_json = get_response_based_on_request(dl, vehicle_data, websocket)
             except jwt.ExpiredSignatureError:
                 response_json = error_response_maker("401", "token_expired", "Access token has expired.") 
