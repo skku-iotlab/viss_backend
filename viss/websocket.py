@@ -9,6 +9,7 @@ from viss.lib import *
 from testdjango.settings import SIMPLE_JWT
 
 working_subscriptionIds = []
+DEFAULT_VEHICLE_DATA_ACCESS_REFRESH_TIME = 1
 
 def read_vehicle_data():
     with open('viss/vss_final.json') as generated_data:
@@ -42,6 +43,12 @@ def default_response_maker(dl):
     final_json["requestId"] = requestId_(dl)
     return final_json
 
+def sub_response_maker(dl):
+    final_json = {}
+    final_json["action"] = "subscription"
+    final_json["requestId"] = requestId_(dl)
+    return final_json
+
 def error_response_maker(number, reason, message):
     new_json = {}
     new_json["error"] = {}
@@ -51,24 +58,56 @@ def error_response_maker(number, reason, message):
     new_json["ts"] = datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
     return new_json
 
-#
-#
-#
+#################
+# subscriptions #
+#################
 
 async def sub_time_based(dl, websocket, subscriptionId):
     print("now on")
     while subscriptionId in working_subscriptionIds:
-        vehicle_data = read_vehicle_data()
-        final_json = default_response_maker(dl)
-        print(search_read(url_path_(dl), vehicle_data))
-        response_json = search_read(url_path_(dl), vehicle_data)
+        final_json = sub_response_maker(dl)
+        response_json = search_read(url_path_(dl), read_vehicle_data())
         for key in response_json:
             final_json[key] = response_json[key]
         await websocket.send(json.dumps(final_json))
         await asyncio.sleep(int(dl["filter"]["op-extra"]["period"]))
 
 async def sub_range(dl, websocket, subscriptionId):
-    pass
+    final_json = sub_response_maker(dl)
+    logic_op = dl["filter"]["op-extra"]["logic-op"]
+    try:
+        boundary = float(dl["filter"]["op-extra"]["boundary"])
+    except:
+        response_json = error_response_maker(400, "filter_invalid_2", "CUSTOM ERROR: Filter requested on invalid type.")
+    while True:
+        if not(subscriptionId in working_subscriptionIds):
+            break
+        #print("..........")
+        response_json = None
+        data = read(url_path_(dl), read_vehicle_data())
+        try:
+            dp = float(data['data']['dp']['value'])
+        except:
+            response_json = error_response_maker(400, "filter_invalid_3", "CUSTOM ERROR: Filter requested on invalid data path.")
+        #print(dp)
+        if logic_op == "eq" and dp == boundary:
+            response_json = data
+        elif logic_op == "ne" and dp != boundary:
+            response_json = data
+        elif logic_op == "gt" and dp > boundary:
+            response_json = data
+        elif logic_op == "gte" and dp >= boundary:
+            response_json = data
+        elif logic_op == "lt" and dp < boundary:
+            response_json = data
+        elif logic_op == "lte" and dp <= boundary:
+            response_json = data
+        if response_json != None:
+            for key in response_json:
+                final_json[key] = response_json[key]
+            await websocket.send(json.dumps(final_json))
+            break                
+        await asyncio.sleep(DEFAULT_VEHICLE_DATA_ACCESS_REFRESH_TIME)
 
 async def sub_change(dl, websocket, subscriptionId):
     pass
