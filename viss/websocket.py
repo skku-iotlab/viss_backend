@@ -12,6 +12,9 @@ from testdjango.settings import SIMPLE_JWT
 working_subscriptionIds = []
 DEFAULT_VEHICLE_DATA_ACCESS_REFRESH_TIME = 1
 
+###################
+#      tools      #
+###################
 def read_vehicle_data():
     with open('viss/vss_final.json') as generated_data:
         return json.loads(generated_data.read())
@@ -59,10 +62,9 @@ def error_response_maker(number, reason, message):
     new_json["ts"] = datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
     return new_json
 
-#################
-# subscriptions #
-#################
-
+###################
+#  subscriptions  #
+###################
 async def sub_time_based(dl, websocket, subscriptionId):
     while subscriptionId in working_subscriptionIds:
         final_json = sub_response_maker(dl)
@@ -100,6 +102,7 @@ async def sub_range(dl, websocket, subscriptionId):
             for key in response_json:
                 final_json[key] = response_json[key]
             await websocket.send(json.dumps(final_json))
+            working_subscriptionIds.remove(subscriptionId)
             break                
         await asyncio.sleep(DEFAULT_VEHICLE_DATA_ACCESS_REFRESH_TIME)
 
@@ -114,8 +117,6 @@ async def sub_change(dl, websocket, subscriptionId):
         if not(subscriptionId in working_subscriptionIds):
             break
         new_data = read(url_path_(dl), read_vehicle_data())
-        #if data['data']['dp']['value'] == True or data['data']['dp']['value'] == False:
-        #    raise Exception('True of False CANNOT be filtered')
         if new_data['data']['dp']['ts'] == data['data']['dp']['ts']:
             pass
         else:
@@ -138,6 +139,7 @@ async def sub_change(dl, websocket, subscriptionId):
                 for key in response_json:
                     final_json[key] = response_json[key]
                 await websocket.send(json.dumps(final_json))
+                working_subscriptionIds.remove(subscriptionId) #erase key
                 break
             data = new_data
         await asyncio.sleep(DEFAULT_VEHICLE_DATA_ACCESS_REFRESH_TIME)
@@ -178,6 +180,7 @@ async def sub_curve_logging(dl, websocket, subscriptionId):
         for key in response_json:
             final_json[key] = response_json[key]
         await websocket.send(json.dumps(final_json))
+        working_subscriptionIds.remove(subscriptionId)
 
 def sub_manager(dl, vehicle_data, websocket):
     response_json = search_read(url_path_(dl), vehicle_data)
@@ -232,10 +235,10 @@ def unsub_manager(dl):
         return {"subscriptionId" : subscriptionId, "ts" : datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")}
     except:
         return {"error" : {"number" : "404", "reason" : "invalid_subscriptionId", "message": "The specified subscription was not found"}, "ts" : datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")}
-#
-#
-#
 
+###################
+# request handler #
+###################
 def get_response_based_on_request(dl, vehicle_data, websocket):
     if action_(dl) == 'get':
         if "filter" not in dl:
