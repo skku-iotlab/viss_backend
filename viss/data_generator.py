@@ -143,7 +143,6 @@ def merge_datasets(json_new, json_old, max_length = 5):
             for k in json_old_copy[a]:
                 temp[a].append(k)
             temp[a] = temp[a][:max_length]
-            print(len(temp[a]))
         else:
             continue
     return temp
