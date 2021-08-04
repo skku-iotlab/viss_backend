@@ -128,7 +128,7 @@ def recursive_json_generator(json, ts, granpa, num):
             continue
     return temp
 
-def merge_datasets(json_new, json_old):
+def merge_datasets(json_new, json_old, max_length = 5):
     temp = dict()
     json_new_copy = json_new
     json_old_copy = json_old
@@ -142,6 +142,8 @@ def merge_datasets(json_new, json_old):
                 temp[a].append(j)
             for k in json_old_copy[a]:
                 temp[a].append(k)
+            temp[a] = temp[a][:max_length]
+            print(len(temp[a]))
         else:
             continue
     return temp
