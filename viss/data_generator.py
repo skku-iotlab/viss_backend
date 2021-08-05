@@ -168,7 +168,7 @@ def genVehicleData():
             ts = datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
             with open('viss/vss_final.json') as generated_data:  # without children directory
                 old = json.loads(generated_data.read())
-                result = merge_datasets(recursive_json_generator(json_file, ts, '', 1), old)
+                result = merge_datasets(recursive_json_generator(json_file, ts, '', 1), old, 20)
                 with open('viss/vss_final.json', 'w') as file_final:
                     file_final.write(json.dumps(result))
                     print('Vehicle Data Updated:', ts)

@@ -40,37 +40,64 @@ def read(url_path, vehicle_data):
 
 def search_read(url_path, vehicle_data, op_value = None):
     # sub directory search
-    if op_value != None: url_path = url_path + "/" + op_value #make full url path ex. /Vehicle/Cabin/Door/*/*/IsOpen
-    path_list = url_path.split("/") # make url path into list to search each level
-    data_path = []
-    error_data={
-        "Error Code":"404 (Not Found)",
-        "Error Reason" : "invalid_path",
-        "message": "The specified data path does not exist."
-    }
 
-    if check_wildcard(url_path):
-        response_data = {
-            'data': [] # wildcard yes -> mutiple return value -> list
-        }
-        search_read_type = 'wildcard'
-        recursive_read(vehicle_data, path_list, data_path, response_data, search_read_type)
+    op_value_list = []
+    if type(op_value) is str:
+        op_value_list.append(op_value)
+    elif type(op_value) is list:
+        op_value_list = op_value
     else:
-        search_read_type = 'no_wildcard'
-        response_data = {} # no wildcard, but it can be branch -> then give array data type to 
+        op_value_list = [None]
+
+    final_response_data = []
+    print('out')
+    for i in op_value_list:
+        print('in for loop')
+        op_value = i
+        if op_value != None: 
+            search_url_path = url_path + "/" + op_value
+        else:
+            search_url_path = url_path
+        print(search_url_path) #make full url path ex. /Vehicle/Cabin/Door/*/*/IsOpen
+        path_list = search_url_path.split("/") # make url path into list to search each level
+        data_path = []
+        response_data = [] # wildcard yes -> mutiple return value -> list
+        if check_wildcard(search_url_path):
+            search_read_type = 'wildcard'
+        else:
+            search_read_type = 'no_wildcard'
         recursive_read(vehicle_data, path_list, data_path, response_data, search_read_type)
 
-
-    if search_read_type == 'wildcard':
-        if not response_data["data"]:
+        if not bool(response_data):
             #wildcard -> data in list
             #response_data["data"] list가 비어있을 때 == 아무것도 반환하지 않음 => ERROR
-            response_data=error_data
-    elif search_read_type == 'no_wildcard':
-        if bool(response_data)==False:
-            #no wildcard -> no "data" in dictionary
-            response_data=error_data
-    return response_data
+            #final_response_data = error_data
+            error_data={
+                "path":search_url_path,
+                "error":{
+                    "Error Code":"404 (Not Found)",
+                    "Error Reason" : "invalid_path",
+                    "Error Message": "The specified data path does not exist."
+                }
+            }
+            final_response_data.append(error_data)
+
+        else:
+            for j in response_data:
+                for k in final_response_data:
+                    if k['path'] == j['path']:
+                        break
+                else:
+                    final_response_data.append(j)
+
+
+    if len(final_response_data) >= 2:
+        final_response_data = {'data' : final_response_data}
+    else:
+        print(final_response_data)
+        final_response_data = {'data' : final_response_data[0]}
+
+    return final_response_data
 
 
 def check_wildcard(op_value):
@@ -113,8 +140,7 @@ def recursive_read(vehicle_data, path_list, data_path, response_data, search_rea
             for path in vehicle_data: #passed vehicle data(decreased hierarchy level)
                 data_path_copy = copy.deepcopy(data_path)
                 data_path_copy.append(path) # wild card -> add additional paths to search with next hierarchy level 
-                recursive_read(
-                    vehicle_data[path], path_list_copy, data_path_copy, response_data, search_read_type)
+                recursive_read(vehicle_data[path], path_list_copy, data_path_copy, response_data, search_read_type)
     else: #len(path_list_copy) == 1 : last path
 
         if path_list[0] in vehicle_data:
@@ -137,10 +163,12 @@ def recursive_read(vehicle_data, path_list, data_path, response_data, search_rea
                     }
                 }
                 if search_read_type == 'wildcard':
-                    response_data['data'].append(temp_data)
+                    response_data.append(temp_data)
+                    print(response_data)
                     # multiple data -> append
                 elif search_read_type == 'no_wildcard':
-                    response_data['data'] = temp_data
+                    response_data.append(temp_data)
+                    print(response_data)
                     # single data
             else: # branch
                 data_path.append(path_list[0])
@@ -148,8 +176,9 @@ def recursive_read(vehicle_data, path_list, data_path, response_data, search_rea
                 if search_read_type == 'wildcard':
                     branch_data = response_data
                 elif search_read_type == 'no_wildcard':
+                    print("123123123123")
                     branch_data = response_data
-                    branch_data['data'] = []
+                    branch_data = []
 
 
                 recursive_branch_read(vehicle_data[path_list[0]], data_path, branch_data)
