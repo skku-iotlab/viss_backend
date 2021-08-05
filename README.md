@@ -1,5 +1,5 @@
 
-1. Set up python virtual environment (Optional)
+1. Set up python virtual environment (Recommended)
 
 2. Set up viss_backend server
 
