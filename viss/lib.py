@@ -176,9 +176,8 @@ def recursive_read(vehicle_data, path_list, data_path, response_data, search_rea
                 if search_read_type == 'wildcard':
                     branch_data = response_data
                 elif search_read_type == 'no_wildcard':
-                    print("123123123123")
                     branch_data = response_data
-                    branch_data = []
+                    # branch_data = []
 
 
                 recursive_branch_read(vehicle_data[path_list[0]], data_path, branch_data)
@@ -203,7 +202,7 @@ def recursive_branch_read(vehicle_data, data_path, branch_data):
                     "ts": vehicle_data[path][0]['ts']
                 }
             }
-            branch_data['data'].append(temp_data) # given branch data에 계속 추가 
+            branch_data.append(temp_data) # given branch data에 계속 추가 
             
         else: # until branch
             recursive_branch_read(vehicle_data[path], data_path_copy, branch_data)
