@@ -162,7 +162,7 @@ async def sub_curve_logging(dl, websocket, subscriptionId):
         else:
             time_recorder.append(data['data']['dp']['ts'])
             data_curve.add_point(j, float(data['data']['dp']['value']))
-            print('buffer #', j, float(data['data']['dp']['value']))
+            print('buffer #', j, float(data['data']['dp']['value'])) #testcode
             j += 1
         data = new_data
         await asyncio.sleep(DEFAULT_VEHICLE_DATA_ACCESS_REFRESH_TIME)
@@ -261,19 +261,19 @@ def get_response_based_on_request(dl, vehicle_data, websocket):
         return unsub_manager(dl)
 
 async def accept(websocket, path):
-    print("client connected")
+    print("client connected") #testcode
     while True:
         data = await websocket.recv(); #wait for client
         dl = json.loads(data)
         response_json = {}
         vehicle_data = read_vehicle_data()
-        print('A') #
+        print('A') #testcode
         if is_request_authorized(dl):
-            print('B') #
+            print('B') #testcode
             try:
                 body = jwt.decode(dl["authorization"], SIMPLE_JWT['SIGNING_KEY'], SIMPLE_JWT['ALGORITHM'])
                 print(body)
-                print('C') #
+                print('C') #testcode
                 response_json = get_response_based_on_request(dl, vehicle_data, websocket)
             except jwt.ExpiredSignatureError:
                 response_json = error_response_maker("401", "token_expired", "Access token has expired.") 
@@ -290,5 +290,5 @@ async def accept(websocket, path):
         final_json = default_response_maker(dl)
         for key in response_json:
             final_json[key] = response_json[key]
-        print(json.dumps(final_json))
+        print(json.dumps(final_json)) #testcode
         await websocket.send(json.dumps(final_json))
