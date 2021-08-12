@@ -11,5 +11,5 @@ $ pip install -r requirements.txt
 3. Run viss_backend server
 
 ```
-$ python manage.py
+$ python manage.py runserver
 ```
