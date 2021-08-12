@@ -6,6 +6,7 @@ from datetime import datetime
 import jwt
 
 from viss.bufferedCurve import * 
+from viss.error_message import get_error_code
 from viss.lib import *
 from testdjango.settings import SIMPLE_JWT
 
@@ -53,7 +54,9 @@ def sub_response_maker(dl):
     final_json["requestId"] = requestId_(dl)
     return final_json
 
+# Deprecated #
 def error_response_maker(number, reason, message):
+    print("Deprecated: plz use viss.error_message get_error_code()")
     new_json = {}
     new_json["error"] = {}
     new_json["error"]["number"] = number
@@ -200,11 +203,11 @@ def sub_manager(dl, vehicle_data, websocket):
             for i in path_list:
                 json_file  = json_file[i]["children"]
             if json_file[last_path]["datatype"] in ["boolean", "string", "string[]", "uint8[]"]:
-                return error_response_maker("400", "filter_invalid", "CUSTOM ERROR: Filter requested on invalid type.")
+                return get_error_code("filter_invalid", True)
         try: 
             float(dl["filter"]["op-extra"]["boundary"])
         except:
-            return error_response_maker("400", "bad_request", "The server is unable to fulfil the client request because the request is malformed.")
+            return get_error_code("bad_request", True)
         task = asyncio.create_task(sub_range(dl, websocket, subscriptionId))
 
     elif op_value_(dl) == "change":
@@ -215,11 +218,11 @@ def sub_manager(dl, vehicle_data, websocket):
             for i in path_list:
                 json_file  = json_file[i]["children"]
             if json_file[last_path]["datatype"] in ["boolean", "string", "string[]", "uint8[]"]:
-                return error_response_maker("400", "filter_invalid", "CUSTOM ERROR: Filter requested on invalid type.")
+                return get_error_code("filter_invalid", True)
         try: 
             float(dl["filter"]["op-extra"]["diff"])
         except:
-            return error_response_maker("400", "bad_request", "The server is unable to fulfil the client request because the request is malformed.")
+            return get_error_code("bad_request", True)
         task = asyncio.create_task(sub_change(dl, websocket, subscriptionId))
 
     elif op_value_(dl) == "curve-logging":
@@ -234,7 +237,7 @@ def unsub_manager(dl):
         working_subscriptionIds.remove(subscriptionId)
         return {"subscriptionId" : subscriptionId, "ts" : datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")}
     except:
-        return {"error" : {"number" : "404", "reason" : "invalid_subscriptionId", "message": "The specified subscription was not found"}, "ts" : datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")}
+        return get_error_code("invalid_subscriptionId", True)
 
 ###################
 # request handler #
@@ -276,9 +279,9 @@ async def accept(websocket, path):
                 print('C') #testcode
                 response_json = get_response_based_on_request(dl, vehicle_data, websocket)
             except jwt.ExpiredSignatureError:
-                response_json = error_response_maker("401", "token_expired", "Access token has expired.") 
+                response_json = get_error_code("token_expired", True)
             except jwt.InvalidTokenError:
-                response_json = error_response_maker("401", "token_invalid", "Access token is invalid.")      
+                response_json = get_error_code("token_invalid", True)
             else:
                 #token_missing
                 #too_many_attempts
@@ -286,7 +289,7 @@ async def accept(websocket, path):
         else:
             response_json = get_response_based_on_request(dl, vehicle_data, websocket) 
         if "Error Code" in response_json:
-            response_json = error_response_maker(response_json["Error Code"][0:3], response_json["Error Reason"], response_json["message"]) #WEEK POINT: possible hazard
+            response_json = get_error_code(response_json["Error Reason"], True) #WEEK POINT: possible hazard
         final_json = default_response_maker(dl)
         for key in response_json:
             final_json[key] = response_json[key]

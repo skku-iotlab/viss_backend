@@ -30,7 +30,7 @@ loop = asyncio.get_event_loop()
 start_server = websockets.serve(accept, "127.0.0.1", 3001)   
 
 def Websocket_thread():
-    print('websocket_thread_initialized')
+    print('Starting websocket server at ws://127.0.0.1:3001')
     loop.run_until_complete(start_server)
     loop.run_forever()
 
