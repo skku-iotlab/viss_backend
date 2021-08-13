@@ -22,22 +22,26 @@ def Datagen_thread():
 
 threading.Thread(target=Datagen_thread, args=(), daemon=True).start()
 
-# work 2: websocket integration 
-from viss.websocket import *
+# work 2: websocket_secured integration
+# work 3: websocket_unscured integration 
 import websockets
+from viss.websocket_secured import *
+from viss.websocket_unsecured import *
 
 loop = asyncio.get_event_loop()
-start_server = websockets.serve(accept, "127.0.0.1", 3001)   
+start_server_A = websockets.serve(accept, "127.0.0.1", 3001)   
+start_server_B = websockets.serve(accept_unsecured, "127.0.0.1", 3002)   
 
 def Websocket_thread():
-    print('Starting websocket server at ws://127.0.0.1:3001')
-    loop.run_until_complete(start_server)
+    print("WS_secured server: ws://127.0.0.1:3001")
+    loop.run_until_complete(start_server_A)
+    print("WS_unsecured server: ws://127.0.0.1:3002")
+    loop.run_until_complete(start_server_B)
     loop.run_forever()
 
 threading.Thread(target=Websocket_thread, args=(), daemon=True).start()
 
-
-# work 3: urls
+# work 4: urls
 from django.urls import path,include, re_path
 from rest_framework_simplejwt import views as jwt_views
 

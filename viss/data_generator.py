@@ -156,7 +156,6 @@ def getVehicleData():
         #pprint.pprint(json_file)
         with open('viss/vss_final.json', 'w') as file_final:
             file_final.write(json.dumps(result))
-            print('Vehicle Data Updated:', ts)
     return result
 
 def genVehicleData():
@@ -171,4 +170,4 @@ def genVehicleData():
                 result = merge_datasets(recursive_json_generator(json_file, ts, '', 1), old, 20)
                 with open('viss/vss_final.json', 'w') as file_final:
                     file_final.write(json.dumps(result))
-                    print('Vehicle Data Updated:', ts)
+                    # print('Vehicle Data Updated:', ts)

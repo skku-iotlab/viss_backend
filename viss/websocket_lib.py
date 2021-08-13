@@ -10,6 +10,12 @@ from viss.error_message import get_error_code
 from viss.lib import *
 from testdjango.settings import SIMPLE_JWT
 
+###################
+#    variables    #
+###################
+
+too_many_requests_Ids = {}
+too_many_attempts_Ids = {}
 working_subscriptionIds = {}
 DEFAULT_VEHICLE_DATA_ACCESS_REFRESH_TIME = 1
 
@@ -105,7 +111,7 @@ async def sub_range(dl, websocket, subscriptionId):
             for key in response_json:
                 final_json[key] = response_json[key]
             await websocket.send(json.dumps(final_json))
-            working_subscriptionIds.remove(subscriptionId)
+            del working_subscriptionIds[subscriptionId]
             break                
         await asyncio.sleep(DEFAULT_VEHICLE_DATA_ACCESS_REFRESH_TIME)
 
@@ -142,7 +148,7 @@ async def sub_change(dl, websocket, subscriptionId):
                 for key in response_json:
                     final_json[key] = response_json[key]
                 await websocket.send(json.dumps(final_json))
-                working_subscriptionIds.remove(subscriptionId) #erase key
+                del working_subscriptionIds[subscriptionId]
                 break
             data = new_data
         await asyncio.sleep(DEFAULT_VEHICLE_DATA_ACCESS_REFRESH_TIME)
@@ -183,7 +189,7 @@ async def sub_curve_logging(dl, websocket, subscriptionId):
         for key in response_json:
             final_json[key] = response_json[key]
         await websocket.send(json.dumps(final_json))
-        working_subscriptionIds.remove(subscriptionId)
+        del working_subscriptionIds[subscriptionId]
 
 def sub_manager(dl, vehicle_data, websocket, sessionId):
     response_json = search_read(url_path_(dl), vehicle_data)
@@ -229,19 +235,23 @@ def sub_manager(dl, vehicle_data, websocket, sessionId):
         task = asyncio.create_task(sub_curve_logging(dl, websocket, subscriptionId))
 
     return {"subscriptionId" : subscriptionId, "ts" : datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")}
-    #task.cancel()
+    #task.cancel() # test code
 
 def unsub_manager(dl, sessionId):
     subscriptionId = dl["subscriptionId"]
-    if working_subscriptionIds[subscriptionId] == sessionId:
-        del working_subscriptionIds[subscriptionId]
-        return {"subscriptionId" : subscriptionId, "ts" : datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")}
-    else:
+    try:
+        if working_subscriptionIds[subscriptionId] == sessionId:
+            del working_subscriptionIds[subscriptionId]
+            return {"subscriptionId" : subscriptionId, "ts" : datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")}
+        else:
+            return get_error_code("user_forbidden", True)
+    except:
         return get_error_code("invalid_subscriptionId", True)
 
 ###################
 # request handler #
 ###################
+
 def get_response_based_on_request(dl, vehicle_data, websocket, sessionId):
     if action_(dl) == 'get':
         if "filter" not in dl:
@@ -262,38 +272,3 @@ def get_response_based_on_request(dl, vehicle_data, websocket, sessionId):
         return sub_manager(dl, vehicle_data, websocket, sessionId)
     elif action_(dl) == 'unsubscribe':
         return unsub_manager(dl, sessionId)
-
-async def accept(websocket, path):
-    sessionId = str(uuid.uuid1()) #mac addr and time based
-    print("client connected", sessionId) #testcode
-    
-    while True:
-        data = await websocket.recv(); #wait for client
-        dl = json.loads(data)
-        response_json = {}
-        vehicle_data = read_vehicle_data()
-        print('A') #testcode
-        if is_request_authorized(dl):
-            print('B') #testcode
-            try:
-                body = jwt.decode(dl["authorization"], SIMPLE_JWT['SIGNING_KEY'], SIMPLE_JWT['ALGORITHM'])
-                print(body)
-                print('C') #testcode
-                response_json = get_response_based_on_request(dl, vehicle_data, websocket, sessionId)
-            except jwt.ExpiredSignatureError:
-                response_json = get_error_code("token_expired", True)
-            except jwt.InvalidTokenError:
-                response_json = get_error_code("token_invalid", True)
-            else:
-                #token_missing
-                #too_many_attempts
-                pass
-        else:
-            response_json = get_response_based_on_request(dl, vehicle_data, websocket, sessionId) 
-        if "Error Code" in response_json:
-            response_json = get_error_code(response_json["Error Reason"], True) #WEEK POINT: possible hazard
-        final_json = default_response_maker(dl)
-        for key in response_json:
-            final_json[key] = response_json[key]
-        print(json.dumps(final_json)) #testcode
-        await websocket.send(json.dumps(final_json))
