@@ -14,8 +14,8 @@ from testdjango.settings import SIMPLE_JWT
 #    variables    #
 ###################
 
-too_many_requests_Ids = {}
-too_many_attempts_Ids = {}
+too_many_requests_Ips = {}
+too_many_attempts_Ips = {}
 working_subscriptionIds = {}
 DEFAULT_VEHICLE_DATA_ACCESS_REFRESH_TIME = 1
 
