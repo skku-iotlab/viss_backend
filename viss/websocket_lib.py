@@ -272,3 +272,4 @@ def get_response_based_on_request(dl, vehicle_data, websocket, sessionId):
         return sub_manager(dl, vehicle_data, websocket, sessionId)
     elif action_(dl) == 'unsubscribe':
         return unsub_manager(dl, sessionId)
+        

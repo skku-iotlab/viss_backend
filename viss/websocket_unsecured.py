@@ -28,7 +28,7 @@ async def accept_unsecured(websocket, path):
 
             await websocket.send(json.dumps(final_json))
         except:
-            print("WS_secured: client disconnected", sessionId)
+            print("WS_unsecured: client disconnected", sessionId)
 
             keys = list(working_subscriptionIds.keys())
             print(keys)
