@@ -40,12 +40,13 @@ def read(url_path, vehicle_data):
 
 def search_read(url_path, vehicle_data, op_value = None):
     # sub directory search
-
     op_value_list = []
     if type(op_value) is str:
         op_value_list.append(op_value)
+        # print("op-value is str")
     elif type(op_value) is list:
         op_value_list = op_value
+        # print("op-value is list")
     else:
         op_value_list = [None]
 

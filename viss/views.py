@@ -35,6 +35,12 @@ def Vehicle(request):
             query_params = json.loads(query_params["filter"])
             op_type = query_params["op-type"]
             op_value = query_params["op-value"]
+            print(op_value)
+            print(type(op_value))
+            if "," in op_value:
+                op_value=op_value.split(',')
+                print(op_value)
+        
             if op_type == 'paths':
                 # paths -> sub directory search
                 # print("PATH")
