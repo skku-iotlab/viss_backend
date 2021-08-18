@@ -37,9 +37,11 @@ def Vehicle(request):
             op_value = query_params["op-value"]
             print(op_value)
             print(type(op_value))
+            ###ADDED by JUNE###
             if "," in op_value:
                 op_value=op_value.split(',')
                 print(op_value)
+            ###ADDED by JUNE###
         
             if op_type == 'paths':
                 # paths -> sub directory search
