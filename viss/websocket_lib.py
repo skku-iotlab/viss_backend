@@ -193,7 +193,8 @@ async def sub_curve_logging(dl, websocket, subscriptionId):
 
 def sub_manager(dl, vehicle_data, websocket, sessionId):
     response_json = search_read(url_path_(dl), vehicle_data)
-    if "Error Code" in response_json:
+    print(response_json)
+    if "error" in response_json['data']:
         return response_json
     subscriptionId = str(uuid.uuid1()) #mac addr and time based
     working_subscriptionIds[subscriptionId] = sessionId

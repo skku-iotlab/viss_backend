@@ -61,7 +61,7 @@ def Vehicle(request):
             url_path = url_path[0:len(url_path)-1]
         if "filter" not in query_params:
             response_data = update(url_path, vehicle_data, request.data)
-    if "Error Code" in response_data:
+    if "error" in response_data['data']:
         return JsonResponse(response_data,status=404)
     else:
         return JsonResponse(response_data,status=200)
