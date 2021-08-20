@@ -67,7 +67,6 @@ def Vehicle(request):
         return JsonResponse(response_data,status=404)
     else:
         return JsonResponse(response_data,status=200)
-    # return JsonResponse(response_data)
 
 # VISSv2 & VSSv2.1
 

@@ -13,12 +13,7 @@ def read(url_path, vehicle_data):
     response_data = {}
 
     error_data = get_error_code("invalid_path")
-    # error_data = {
-    #     "Error Code":"404 (Not Found)",
-    #     "Error Reason" : "invalid_path",
-    #     "message": "The specified data path does not exist."
-    # }
-    
+
     for path in path_list:
         try:
             vehicle_data = vehicle_data[path]
@@ -217,12 +212,6 @@ def history_read(url_path, vehicle_data, op_value):
 
     error_data = get_error_code("invalid_path")
 
-    # error_data = {
-    #     "Error Code":"404 (Not Found)",
-    #     "Error Reason" : "invalid_path",
-    #     "message": "The specified data path does not exist."
-    # }
-
     for key in period:
         if key == "days_ago":
             request_time = request_time - timedelta(days=period[key])
@@ -290,12 +279,6 @@ def service_discovery_read(url_path, vss_json_file, op_value):
 
     error_data = get_error_code("invalid_path")
 
-    # error_data = {
-    #     "Error Code":"404 (Not Found)",
-    #     "Error Reason" : "invalid_path",
-    #     "message": "The specified data path does not exist."
-    # }
-
     if op_value == 'static':
         path_list = url_path.split("/")
         for path in path_list:
@@ -325,11 +308,6 @@ def update(url_path, vehicle_data, request_data):
     path_list = url_path.split("/")
     error_data = get_error_code("invalid_path")
 
-    # error_data={
-    #     "Error Code":"404 (Not Found)",
-    #     "Error Reason" : "invalid_path",
-    #     "message": "The specified data path does not exist."
-    # }
     response_data = {}
     ts = datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
     temp_vehicle_data = vehicle_data
