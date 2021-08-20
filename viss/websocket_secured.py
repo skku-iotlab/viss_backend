@@ -2,7 +2,8 @@ from viss.websocket_lib import *
 
 async def accept(websocket, path):
     sessionId = str(uuid.uuid1()) #mac addr and time based
-    print("WS_secured: client connected", sessionId) #testcode
+    clientIp = websocket.remote_address[0]
+    print("WS_secured: client connected", sessionId, clientIp) #testcode
 
     while True:
         try:
@@ -10,7 +11,27 @@ async def accept(websocket, path):
             dl = json.loads(data)
             response_json = {}
             vehicle_data = read_vehicle_data()
-            print('A') #testcode
+            #spam check start
+            try:
+                s_req_hist[clientIp]
+            except:
+                s_req_hist[clientIp] = []
+
+            if len(s_req_hist[clientIp]) >= 1: 
+                if ((time.time() - s_req_hist[clientIp][0]) <= SPAM_TIME) and len(s_req_hist[clientIp]) == SPAM_COUNT:
+                    response_json = get_error_code("too_many_attempts", True) #WEEK POINT: possible hazard
+                    final_json = default_response_maker(dl)
+                    for key in response_json:
+                        final_json[key] = response_json[key]
+                    await websocket.send(json.dumps(final_json))
+                    continue
+                
+            s_req_hist[clientIp].append(time.time()) 
+            if len(s_req_hist[clientIp]) > SPAM_COUNT:
+                del s_req_hist[clientIp][0]
+
+            print(len(s_req_hist[clientIp]))
+            #spam check end
             if is_request_authorized(dl):
                 print('B') #testcode
                 try:

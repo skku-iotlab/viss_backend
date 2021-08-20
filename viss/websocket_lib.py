@@ -1,4 +1,5 @@
-import asyncio                    
+import asyncio
+from asyncio.tasks import sleep                    
 import json
 import uuid
 import time
@@ -17,14 +18,24 @@ from testdjango.settings import SIMPLE_JWT
 too_many_requests_Ips = {}
 too_many_attempts_Ips = {}
 working_subscriptionIds = {}
+uns_req_hist = {}
+s_req_hist = {}
+request_history_by_Ips_unsecure = {}
 DEFAULT_VEHICLE_DATA_ACCESS_REFRESH_TIME = 1
+SPAM_COUNT = 10
+SPAM_TIME = 15
 
 ###################
 #      tools      #
 ###################
 def read_vehicle_data():
-    with open('viss/vss_final.json') as generated_data:
-        return json.loads(generated_data.read())
+    try:
+        with open('viss/vss_final.json') as generated_data:
+            return json.loads(generated_data.read())
+    except:
+        sleep(0.05)
+        with open('viss/vss_final.json') as generated_data:
+            return json.loads(generated_data.read())
 
 def is_request_authorized(json):
     if "authorization" in json: return True
@@ -171,44 +182,6 @@ async def sub_change(dl, websocket, subscriptionId):
             # 이번 dp는 특정 조건에서 continue를 돌지 못하고 break로 빠져나옴: 대기 후 새로운 dp에 대하여 반복
             data = new_data
         await asyncio.sleep(DEFAULT_VEHICLE_DATA_ACCESS_REFRESH_TIME)
-
-# async def sub_change(dl, websocket, subscriptionId):
-#     final_json = sub_response_maker(dl)
-#     response_json = None
-#     logic_op = dl["filter"]["op-extra"]["logic-op"]
-#     diff = float(dl["filter"]["op-extra"]["diff"])
-#     data = read(url_path_(dl), read_vehicle_data())
-#     await asyncio.sleep(DEFAULT_VEHICLE_DATA_ACCESS_REFRESH_TIME)
-#     while True:
-#         if not(subscriptionId in working_subscriptionIds):
-#             break
-#         new_data = read(url_path_(dl), read_vehicle_data())
-#         if new_data['data']['dp']['ts'] == data['data']['dp']['ts']:
-#             pass
-#         else:
-#             current_diff = float(new_data['data']['dp']['value']) - float(data['data']['dp']['value'])
-#             print("..........") #testcode
-#             print(current_diff) #testcode
-#             if logic_op == "eq" and current_diff == diff:
-#                 response_json = new_data
-#             elif logic_op == "ne" and current_diff != diff:
-#                 response_json = new_data
-#             elif logic_op == "gt" and current_diff > diff:
-#                 response_json = new_data
-#             elif logic_op == "gte" and current_diff >= diff:
-#                 response_json = new_data
-#             elif logic_op == "lt" and current_diff < diff:
-#                 response_json = new_data
-#             elif logic_op == "lte" and current_diff <= diff:
-#                 response_json = new_data
-#             if response_json != None:
-#                 for key in response_json:
-#                     final_json[key] = response_json[key]
-#                 await websocket.send(json.dumps(final_json))
-#                 del working_subscriptionIds[subscriptionId]
-#                 break
-#             data = new_data
-#         await asyncio.sleep(DEFAULT_VEHICLE_DATA_ACCESS_REFRESH_TIME)
 
 async def sub_curve_logging(dl, websocket, subscriptionId):
     final_json = sub_response_maker(dl)
