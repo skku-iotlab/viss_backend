@@ -87,6 +87,8 @@ async def sub_range(dl, websocket, subscriptionId):
     final_json = sub_response_maker(dl)
     response_json = None
     logic_op = dl["filter"]["op-extra"]["logic-op"]
+    if logic_op not in ["eq", "ne", "gt", "gte", "lt", "lte"]:
+        response_json = get_error_code("filter_invalid")
     boundary = float(dl["filter"]["op-extra"]["boundary"])
     while True:
         if not(subscriptionId in working_subscriptionIds):
@@ -119,6 +121,8 @@ async def sub_change(dl, websocket, subscriptionId):
     final_json = sub_response_maker(dl)
     response_json = None
     logic_op = dl["filter"]["op-extra"]["logic-op"]
+    if logic_op not in ["eq", "ne", "gt", "gte", "lt", "lte"]:
+        response_json = get_error_code("filter_invalid")
     diff = float(dl["filter"]["op-extra"]["diff"])
     data = read(url_path_(dl), read_vehicle_data())
     await asyncio.sleep(DEFAULT_VEHICLE_DATA_ACCESS_REFRESH_TIME)
