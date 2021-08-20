@@ -18,12 +18,14 @@ from testdjango.settings import SIMPLE_JWT
 too_many_requests_Ips = {}
 too_many_attempts_Ips = {}
 working_subscriptionIds = {}
+DEFAULT_VEHICLE_DATA_ACCESS_REFRESH_TIME = 1
+jwt_req_hist = {}
 uns_req_hist = {}
 s_req_hist = {}
-request_history_by_Ips_unsecure = {}
-DEFAULT_VEHICLE_DATA_ACCESS_REFRESH_TIME = 1
+JWT_SPAM_COUNT = 5
+JWT_SPAM_TIME = 20
 SPAM_COUNT = 10
-SPAM_TIME = 15
+SPAM_TIME = 10
 
 ###################
 #      tools      #

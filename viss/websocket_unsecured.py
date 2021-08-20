@@ -21,7 +21,7 @@ async def accept_unsecured(websocket, path):
 
             if len(uns_req_hist[clientIp]) >= 1: 
                 if ((time.time() - uns_req_hist[clientIp][0]) <= SPAM_TIME) and len(uns_req_hist[clientIp]) == SPAM_COUNT:
-                    response_json = get_error_code("too_many_attempts", True) #WEEK POINT: possible hazard
+                    response_json = get_error_code("too_many_requests", True) #WEEK POINT: possible hazard
                     final_json = default_response_maker(dl)
                     for key in response_json:
                         final_json[key] = response_json[key]

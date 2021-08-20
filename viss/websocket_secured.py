@@ -19,7 +19,7 @@ async def accept(websocket, path):
 
             if len(s_req_hist[clientIp]) >= 1: 
                 if ((time.time() - s_req_hist[clientIp][0]) <= SPAM_TIME) and len(s_req_hist[clientIp]) == SPAM_COUNT:
-                    response_json = get_error_code("too_many_attempts", True) #WEEK POINT: possible hazard
+                    response_json = get_error_code("too_many_requests", True) #WEEK POINT: possible hazard
                     final_json = default_response_maker(dl)
                     for key in response_json:
                         final_json[key] = response_json[key]
@@ -42,6 +42,29 @@ async def accept(websocket, path):
                 except jwt.ExpiredSignatureError:
                     response_json = get_error_code("token_expired", True)
                 except jwt.InvalidTokenError:
+
+                    #jwt spam check start
+                    try:
+                        jwt_req_hist[clientIp]
+                    except:
+                        jwt_req_hist[clientIp] = []
+
+                    if len(jwt_req_hist[clientIp]) >= 1: 
+                        if ((time.time() - jwt_req_hist[clientIp][0]) <= JWT_SPAM_TIME) and len(jwt_req_hist[clientIp]) == JWT_SPAM_COUNT:
+                            response_json = get_error_code("too_many_attempts", True) #WEEK POINT: possible hazard
+                            final_json = default_response_maker(dl)
+                            for key in response_json:
+                                final_json[key] = response_json[key]
+                            await websocket.send(json.dumps(final_json))
+                            continue
+                        
+                    jwt_req_hist[clientIp].append(time.time()) 
+                    if len(jwt_req_hist[clientIp]) > JWT_SPAM_COUNT:
+                        del jwt_req_hist[clientIp][0]
+
+                    print(len(jwt_req_hist[clientIp]))
+                    #jwt spam check end
+                    
                     response_json = get_error_code("token_invalid", True)
                 else:
                     #too_many_attempts
