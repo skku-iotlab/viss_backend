@@ -77,15 +77,7 @@ def search_read(url_path, vehicle_data, op_value = None):
             #final_response_data = error_data
             error_data = get_error_code("invalid_path")
 
-            # error_data={
-            #     "path":search_url_path,
-            #     "error":{
-            #         "Error Code":"404 (Not Found)",
-            #         "Error Reason" : "invalid_path",
-            #         "Error Message": "The specified data path does not exist."
-            #     }
-            # }
-            final_response_data.append(error_data)
+            return error_data
 
         else:
             for j in response_data:

@@ -85,47 +85,54 @@ async def sub_time_based(dl, websocket, subscriptionId):
 
 async def sub_range(dl, websocket, subscriptionId):
     final_json = sub_response_maker(dl)
-    response_json = None
-    logic_op = dl["filter"]["op-extra"]["logic-op"]
-    if logic_op not in ["eq", "ne", "gt", "gte", "lt", "lte"]:
-        response_json = get_error_code("filter_invalid")
-    boundary = float(dl["filter"]["op-extra"]["boundary"])
+    logic_op_list = []
+    if type(dl["filter"]["op-extra"]) == dict:
+        logic_op_list.append(dl["filter"]["op-extra"])
+    else:
+        logic_op_list = dl["filter"]["op-extra"]
+    
     while True:
         if not(subscriptionId in working_subscriptionIds):
             break
-        data = read(url_path_(dl), read_vehicle_data())
-        dp = float(data['data']['dp']['value'])
-        print("..........") #testcode
-        print(dp) #testcode
-        if logic_op == "eq" and dp == boundary:
-            response_json = data
-        elif logic_op == "ne" and dp != boundary:
-            response_json = data
-        elif logic_op == "gt" and dp > boundary:
-            response_json = data
-        elif logic_op == "gte" and dp >= boundary:
-            response_json = data
-        elif logic_op == "lt" and dp < boundary:
-            response_json = data
-        elif logic_op == "lte" and dp <= boundary:
-            response_json = data
-        if response_json != None:
-            for key in response_json:
-                final_json[key] = response_json[key]
+        for condition in logic_op_list:
+            logic_op = condition["logic-op"]
+            boundary = float(condition["boundary"])
+            data = read(url_path_(dl), read_vehicle_data())
+            print(data)
+            dp = float(data['data']['dp']['value'])
+            if logic_op == "eq" and dp == boundary:
+                continue
+            elif logic_op == "ne" and dp != boundary:
+                continue
+            elif logic_op == "gt" and dp > boundary:
+                continue
+            elif logic_op == "gte" and dp >= boundary:
+                continue
+            elif logic_op == "lt" and dp < boundary:
+                continue
+            elif logic_op == "lte" and dp <= boundary:
+                continue
+            else:
+                break
+        else:
+            # 이번 dp는 모든 조건에 대하여 continue를 진행함: 모든 조건이 맞으므로 값을 client에 값을 전송
+            for key in data:
+                final_json[key] = data[key]
             await websocket.send(json.dumps(final_json))
             del working_subscriptionIds[subscriptionId]
-            break                
+            break
+        # 이번 dp는 특정 조건에서 continue를 돌지 못하고 break로 빠져나옴: 대기 후 새로운 dp에 대하여 반복
         await asyncio.sleep(DEFAULT_VEHICLE_DATA_ACCESS_REFRESH_TIME)
+
 
 async def sub_change(dl, websocket, subscriptionId):
     final_json = sub_response_maker(dl)
-    response_json = None
-    logic_op = dl["filter"]["op-extra"]["logic-op"]
-    if logic_op not in ["eq", "ne", "gt", "gte", "lt", "lte"]:
-        response_json = get_error_code("filter_invalid")
-    diff = float(dl["filter"]["op-extra"]["diff"])
+    logic_op_list = []
+    if type(dl["filter"]["op-extra"]) == dict:
+        logic_op_list.append(dl["filter"]["op-extra"])
+    else:
+        logic_op_list = dl["filter"]["op-extra"]
     data = read(url_path_(dl), read_vehicle_data())
-    await asyncio.sleep(DEFAULT_VEHICLE_DATA_ACCESS_REFRESH_TIME)
     while True:
         if not(subscriptionId in working_subscriptionIds):
             break
@@ -133,29 +140,75 @@ async def sub_change(dl, websocket, subscriptionId):
         if new_data['data']['dp']['ts'] == data['data']['dp']['ts']:
             pass
         else:
-            current_diff = float(new_data['data']['dp']['value']) - float(data['data']['dp']['value'])
-            print("..........") #testcode
-            print(current_diff) #testcode
-            if logic_op == "eq" and current_diff == diff:
-                response_json = new_data
-            elif logic_op == "ne" and current_diff != diff:
-                response_json = new_data
-            elif logic_op == "gt" and current_diff > diff:
-                response_json = new_data
-            elif logic_op == "gte" and current_diff >= diff:
-                response_json = new_data
-            elif logic_op == "lt" and current_diff < diff:
-                response_json = new_data
-            elif logic_op == "lte" and current_diff <= diff:
-                response_json = new_data
-            if response_json != None:
-                for key in response_json:
-                    final_json[key] = response_json[key]
+            for condition in logic_op_list:
+                logic_op = condition["logic-op"]
+                diff = float(condition["diff"])
+                current_diff = float(new_data['data']['dp']['value']) - float(data['data']['dp']['value'])
+                print("..........") #testcode
+                print(current_diff) #testcode
+                dp = float(data['data']['dp']['value'])
+                if logic_op == "eq" and current_diff == diff:
+                    continue
+                elif logic_op == "ne" and current_diff != diff:
+                    continue
+                elif logic_op == "gt" and current_diff > diff:
+                    continue
+                elif logic_op == "gte" and current_diff >= diff:
+                    continue
+                elif logic_op == "lt" and current_diff < diff:
+                    continue
+                elif logic_op == "lte" and current_diff <= diff:
+                    continue
+                else:
+                    break
+            else:
+                # 이번 dp는 모든 조건에 대하여 continue를 진행함: 모든 조건이 맞으므로 값을 client에 값을 전송
+                for key in data:
+                    final_json[key] = new_data[key]
                 await websocket.send(json.dumps(final_json))
                 del working_subscriptionIds[subscriptionId]
                 break
+            # 이번 dp는 특정 조건에서 continue를 돌지 못하고 break로 빠져나옴: 대기 후 새로운 dp에 대하여 반복
             data = new_data
         await asyncio.sleep(DEFAULT_VEHICLE_DATA_ACCESS_REFRESH_TIME)
+
+# async def sub_change(dl, websocket, subscriptionId):
+#     final_json = sub_response_maker(dl)
+#     response_json = None
+#     logic_op = dl["filter"]["op-extra"]["logic-op"]
+#     diff = float(dl["filter"]["op-extra"]["diff"])
+#     data = read(url_path_(dl), read_vehicle_data())
+#     await asyncio.sleep(DEFAULT_VEHICLE_DATA_ACCESS_REFRESH_TIME)
+#     while True:
+#         if not(subscriptionId in working_subscriptionIds):
+#             break
+#         new_data = read(url_path_(dl), read_vehicle_data())
+#         if new_data['data']['dp']['ts'] == data['data']['dp']['ts']:
+#             pass
+#         else:
+#             current_diff = float(new_data['data']['dp']['value']) - float(data['data']['dp']['value'])
+#             print("..........") #testcode
+#             print(current_diff) #testcode
+#             if logic_op == "eq" and current_diff == diff:
+#                 response_json = new_data
+#             elif logic_op == "ne" and current_diff != diff:
+#                 response_json = new_data
+#             elif logic_op == "gt" and current_diff > diff:
+#                 response_json = new_data
+#             elif logic_op == "gte" and current_diff >= diff:
+#                 response_json = new_data
+#             elif logic_op == "lt" and current_diff < diff:
+#                 response_json = new_data
+#             elif logic_op == "lte" and current_diff <= diff:
+#                 response_json = new_data
+#             if response_json != None:
+#                 for key in response_json:
+#                     final_json[key] = response_json[key]
+#                 await websocket.send(json.dumps(final_json))
+#                 del working_subscriptionIds[subscriptionId]
+#                 break
+#             data = new_data
+#         await asyncio.sleep(DEFAULT_VEHICLE_DATA_ACCESS_REFRESH_TIME)
 
 async def sub_curve_logging(dl, websocket, subscriptionId):
     final_json = sub_response_maker(dl)
@@ -198,7 +251,7 @@ async def sub_curve_logging(dl, websocket, subscriptionId):
 def sub_manager(dl, vehicle_data, websocket, sessionId):
     response_json = search_read(url_path_(dl), vehicle_data)
     print(response_json)
-    if "error" in response_json['data']:
+    if "error" in response_json:
         return response_json
     subscriptionId = str(uuid.uuid1()) #mac addr and time based
     working_subscriptionIds[subscriptionId] = sessionId
@@ -215,10 +268,24 @@ def sub_manager(dl, vehicle_data, websocket, sessionId):
                 json_file  = json_file[i]["children"]
             if json_file[last_path]["datatype"] in ["boolean", "string", "string[]", "uint8[]"]:
                 return get_error_code("filter_invalid", True)
-        try: 
-            float(dl["filter"]["op-extra"]["boundary"])
-        except:
-            return get_error_code("bad_request", True)
+
+        #error check start
+        logic_op_list = []
+        if type(dl["filter"]["op-extra"]) == dict:
+            logic_op_list.append(dl["filter"]["op-extra"])
+        else:
+            logic_op_list = dl["filter"]["op-extra"]
+        for condition in logic_op_list:
+            logic_op = condition["logic-op"]
+            boundary = condition["boundary"]
+            if logic_op not in ["eq", "ne", "gt", "gte", "lt", "lte"]:
+                return get_error_code("filter_invalid", True)
+            try: 
+                float(boundary)
+            except:
+                return get_error_code("filter_invalid", True)
+        #error check end
+
         task = asyncio.create_task(sub_range(dl, websocket, subscriptionId))
 
     elif op_value_(dl) == "change":
@@ -230,10 +297,24 @@ def sub_manager(dl, vehicle_data, websocket, sessionId):
                 json_file  = json_file[i]["children"]
             if json_file[last_path]["datatype"] in ["boolean", "string", "string[]", "uint8[]"]:
                 return get_error_code("filter_invalid", True)
-        try: 
-            float(dl["filter"]["op-extra"]["diff"])
-        except:
-            return get_error_code("bad_request", True)
+
+        #error check start
+        logic_op_list = []
+        if type(dl["filter"]["op-extra"]) == dict:
+            logic_op_list.append(dl["filter"]["op-extra"])
+        else:
+            logic_op_list = dl["filter"]["op-extra"]
+        for condition in logic_op_list:
+            logic_op = condition["logic-op"]
+            diff = condition["diff"]
+            if logic_op not in ["eq", "ne", "gt", "gte", "lt", "lte"]:
+                return get_error_code("filter_invalid", True)
+            try: 
+                float(diff)
+            except:
+                return get_error_code("filter_invalid", True)
+        #error check end
+
         task = asyncio.create_task(sub_change(dl, websocket, subscriptionId))
 
     elif op_value_(dl) == "curve-logging":

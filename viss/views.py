@@ -56,12 +56,14 @@ def Vehicle(request):
                     vss_json_file = json.loads(file_origin.read())
                 response_data = service_discovery_read(
                     url_path, vss_json_file, op_value)
+            else:
+                response_data = get_error_code("filter_invalid")
     elif request.method == 'POST':
         if url_path[len(url_path)-1] == "/":
             url_path = url_path[0:len(url_path)-1]
         if "filter" not in query_params:
             response_data = update(url_path, vehicle_data, request.data)
-    if "error" in response_data['data']:
+    if "error" in response_data:
         return JsonResponse(response_data,status=404)
     else:
         return JsonResponse(response_data,status=200)
