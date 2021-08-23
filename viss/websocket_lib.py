@@ -305,7 +305,7 @@ def unsub_manager(dl, sessionId):
             del working_subscriptionIds[subscriptionId]
             return {"subscriptionId" : subscriptionId, "ts" : datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")}
         else:
-            return get_error_code("user_forbidden", True)
+            return get_error_code("device_forbidden", True)
     except:
         return get_error_code("invalid_subscriptionId", True)
 
