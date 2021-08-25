@@ -207,7 +207,6 @@ def history_read(url_path, vehicle_data, op_value):
     # P<date>T<time>
     # i.e, "op-value": "PdddDThhHmmMssS"
     period = get_time_for_op_value(op_value)
-    print(period)
     request_time = datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
     request_time = datetime.strptime(request_time, "%Y-%m-%dT%H:%M:%SZ")
 
@@ -223,7 +222,6 @@ def history_read(url_path, vehicle_data, op_value):
         elif key == "second_ago":
             request_time = request_time - timedelta(seconds=period[key])
 
-    print("hi"+request_time)
     path_list = url_path.split("/")
 
     for path in path_list:
