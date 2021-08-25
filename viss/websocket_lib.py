@@ -241,7 +241,7 @@ def sub_manager(dl, vehicle_data, websocket, sessionId):
             json_file = json.loads(file_origin.read())
             for i in path_list:
                 json_file  = json_file[i]["children"]
-            if json_file[last_path]["datatype"] in ["boolean", "string", "string[]", "uint8[]"]:
+            if json_file[last_path]["datatype"] in ["string", "string[]", "uint8[]"]:
                 return get_error_code("filter_invalid", True)
 
         #error check start
@@ -270,7 +270,7 @@ def sub_manager(dl, vehicle_data, websocket, sessionId):
             json_file = json.loads(file_origin.read())
             for i in path_list:
                 json_file  = json_file[i]["children"]
-            if json_file[last_path]["datatype"] in ["boolean", "string", "string[]", "uint8[]"]:
+            if json_file[last_path]["datatype"] in ["string", "string[]", "uint8[]"]:
                 return get_error_code("filter_invalid", True)
 
         #error check start
