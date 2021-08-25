@@ -289,6 +289,19 @@ def sub_manager(dl, vehicle_data, websocket, sessionId):
             task = asyncio.create_task(sub_change(dl, websocket, subscriptionId))
 
         elif op_value_(dl) == "curve-logging":
+            
+            #error check start
+            try:
+                maxerr = float(dl["filter"]["op-extra"]["max-err"])
+                bufsize = float(dl["filter"]["op-extra"]["buf-size"])
+            except:
+                return get_error_code("filter_invalid")      
+            if maxerr < 0:
+                return get_error_code("filter_invalid")
+            if bufsize < 0:
+                return get_error_code("filter_invalid")
+            #error check end
+
             task = asyncio.create_task(sub_curve_logging(dl, websocket, subscriptionId))
         
         else:
