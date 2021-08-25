@@ -207,6 +207,7 @@ def history_read(url_path, vehicle_data, op_value):
     # P<date>T<time>
     # i.e, "op-value": "PdddDThhHmmMssS"
     period = get_time_for_op_value(op_value)
+    print(period)
     request_time = datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
     request_time = datetime.strptime(request_time, "%Y-%m-%dT%H:%M:%SZ")
 
@@ -222,6 +223,7 @@ def history_read(url_path, vehicle_data, op_value):
         elif key == "second_ago":
             request_time = request_time - timedelta(seconds=period[key])
 
+    print("hi"+request_time)
     path_list = url_path.split("/")
 
     for path in path_list:
@@ -295,6 +297,10 @@ def service_discovery_read(url_path, vss_json_file, op_value):
             except:
                 response_data=error_data
                 return response_data
+    elif op_value == 'dynamic':
+        return get_error_code("not_yet_dev")
+    else:
+        return get_error_code("filter_invalid")
 
     response_data = {
         'metadata': vss_json_file,
@@ -323,8 +329,29 @@ def update(url_path, vehicle_data, request_data):
             response_data = error_data
             return response_data
 
+    try:
+        float(request_data['value'])
+        try:
+            float(temp_vehicle_data[0]['value'])
+        except:
+            return get_error_code("bad_request")
+    except:
+        try:
+            float(temp_vehicle_data[0]['value'])
+            return get_error_code("bad_request")
+        except:
+            pass
+           
+
     temp_vehicle_data[0]['value'] = request_data['value']
     temp_vehicle_data[0]['ts'] = ts
+        
+    # if type(temp_vehicle_data[0]['value'])==request_data['value']:
+    #     print(type(temp_vehicle_data[0]['value']))
+    #     print(type(request_data['value']))
+    #     
+    # else:
+    #     return get_error_code("bad_request")
 
     with open('viss/vss_final.json', 'w') as file_final:
         file_final.write(json.dumps(vehicle_data))

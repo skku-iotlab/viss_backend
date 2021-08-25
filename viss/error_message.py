@@ -3,6 +3,13 @@ from datetime import datetime
 def get_error_code(reason, withTimeStamp = False):
     msg = None
 
+    if reason == "not_yet_dev":
+        msg =  {"error":{
+        "Error Code":"NOT (not_yet_dev)",
+        "Error Reason" : "not_yet_dev",
+        "Error Message": "not_yet_dev"
+        }}
+
     if reason == "not_modified":
         msg =  {"error":{
         "Error Code":"304 (Not Modified)",

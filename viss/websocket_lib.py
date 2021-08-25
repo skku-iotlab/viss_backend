@@ -231,10 +231,14 @@ def sub_manager(dl, vehicle_data, websocket, sessionId):
     subscriptionId = str(uuid.uuid1()) #mac addr and time based
     working_subscriptionIds[subscriptionId] = sessionId
 
+    print(op_type_(dl))
+    if op_type_(dl) != "capture":
+        return get_error_code("filter_invalid", True)
+
     if op_value_(dl) == "time-based":
         task = asyncio.create_task(sub_time_based(dl, websocket, subscriptionId))
 
-    elif op_value_(dl) == "range":
+    else:
         with open('viss/vss_release_2.1.json') as file_origin:
             path_list = url_path_(dl).split("/")
             last_path = path_list.pop()
@@ -242,58 +246,53 @@ def sub_manager(dl, vehicle_data, websocket, sessionId):
             for i in path_list:
                 json_file  = json_file[i]["children"]
             if json_file[last_path]["datatype"] in ["string", "string[]", "uint8[]"]:
-                return get_error_code("filter_invalid", True)
+                return get_error_code("invalid_path", True)
 
-        #error check start
-        logic_op_list = []
-        if type(dl["filter"]["op-extra"]) == dict:
-            logic_op_list.append(dl["filter"]["op-extra"])
+        if op_value_(dl) == "range":
+            #error check start
+            logic_op_list = []
+            if type(dl["filter"]["op-extra"]) == dict:
+                logic_op_list.append(dl["filter"]["op-extra"])
+            else:
+                logic_op_list = dl["filter"]["op-extra"]
+            for condition in logic_op_list:
+                logic_op = condition["logic-op"]
+                boundary = condition["boundary"]
+                if logic_op not in ["eq", "ne", "gt", "gte", "lt", "lte"]:
+                    return get_error_code("filter_invalid", True)
+                try: 
+                    float(boundary)
+                except:
+                    return get_error_code("filter_invalid", True)
+            #error check end
+
+            task = asyncio.create_task(sub_range(dl, websocket, subscriptionId))
+
+        elif op_value_(dl) == "change":
+            #error check start
+            logic_op_list = []
+            if type(dl["filter"]["op-extra"]) == dict:
+                logic_op_list.append(dl["filter"]["op-extra"])
+            else:
+                logic_op_list = dl["filter"]["op-extra"]
+            for condition in logic_op_list:
+                logic_op = condition["logic-op"]
+                diff = condition["diff"]
+                if logic_op not in ["eq", "ne", "gt", "gte", "lt", "lte"]:
+                    return get_error_code("filter_invalid", True)
+                try: 
+                    float(diff)
+                except:
+                    return get_error_code("filter_invalid", True)
+            #error check end
+
+            task = asyncio.create_task(sub_change(dl, websocket, subscriptionId))
+
+        elif op_value_(dl) == "curve-logging":
+            task = asyncio.create_task(sub_curve_logging(dl, websocket, subscriptionId))
+        
         else:
-            logic_op_list = dl["filter"]["op-extra"]
-        for condition in logic_op_list:
-            logic_op = condition["logic-op"]
-            boundary = condition["boundary"]
-            if logic_op not in ["eq", "ne", "gt", "gte", "lt", "lte"]:
-                return get_error_code("filter_invalid", True)
-            try: 
-                float(boundary)
-            except:
-                return get_error_code("filter_invalid", True)
-        #error check end
-
-        task = asyncio.create_task(sub_range(dl, websocket, subscriptionId))
-
-    elif op_value_(dl) == "change":
-        with open('viss/vss_release_2.1.json') as file_origin:
-            path_list = url_path_(dl).split("/")
-            last_path = path_list.pop()
-            json_file = json.loads(file_origin.read())
-            for i in path_list:
-                json_file  = json_file[i]["children"]
-            if json_file[last_path]["datatype"] in ["string", "string[]", "uint8[]"]:
-                return get_error_code("filter_invalid", True)
-
-        #error check start
-        logic_op_list = []
-        if type(dl["filter"]["op-extra"]) == dict:
-            logic_op_list.append(dl["filter"]["op-extra"])
-        else:
-            logic_op_list = dl["filter"]["op-extra"]
-        for condition in logic_op_list:
-            logic_op = condition["logic-op"]
-            diff = condition["diff"]
-            if logic_op not in ["eq", "ne", "gt", "gte", "lt", "lte"]:
-                return get_error_code("filter_invalid", True)
-            try: 
-                float(diff)
-            except:
-                return get_error_code("filter_invalid", True)
-        #error check end
-
-        task = asyncio.create_task(sub_change(dl, websocket, subscriptionId))
-
-    elif op_value_(dl) == "curve-logging":
-        task = asyncio.create_task(sub_curve_logging(dl, websocket, subscriptionId))
+            return get_error_code("filter_invalid", True)
 
     return {"subscriptionId" : subscriptionId, "ts" : datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")}
     #task.cancel() # test code
@@ -326,6 +325,8 @@ def get_response_based_on_request(dl, vehicle_data, websocket, sessionId):
                 with open('viss/vss_release_2.1.json') as file_origin:
                     vss_json_file = json.loads(file_origin.read())
                 return service_discovery_read(url_path_(dl), vss_json_file, op_value_(dl))
+            else:
+                return get_error_code("filter_invalid", True)
     elif action_(dl) == 'set':
         if "filter" not in dl:
             return update(url_path_(dl), vehicle_data, dl)
