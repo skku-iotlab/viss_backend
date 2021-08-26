@@ -5,17 +5,20 @@ from django.shortcuts import render
 from datetime import datetime
 from django.http import JsonResponse, response
 
-from rest_framework.decorators import api_view, permission_classes, authentication_classes
+from rest_framework.decorators import api_view, permission_classes, authentication_classes, throttle_classes
+from rest_framework.throttling import UserRateThrottle
 from rest_framework.permissions import IsAuthenticated
 from rest_framework_jwt.authentication import JSONWebTokenAuthentication
 from viss.lib import *
 from viss.data_generator import *
 
 # Create your views here.
-
+class UserThrottle(UserRateThrottle):
+    rate = '10/m'
 
 # VISSv2 & VSSv2.1
 @api_view(['GET', 'POST'])
+@throttle_classes([UserThrottle])
 def Vehicle(request):
     with open('viss/vss_final.json') as generated_data:  # without children directory
         vehicle_data = json.loads(generated_data.read())
@@ -72,6 +75,7 @@ def Vehicle(request):
 
 
 @api_view(['GET', 'POST'])
+@throttle_classes([UserThrottle])
 @permission_classes((IsAuthenticated, ))
 def Vehicle_AverageSpeed(request):
     with open('viss/vss_final.json') as generated_data:
