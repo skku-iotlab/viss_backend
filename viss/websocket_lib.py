@@ -22,10 +22,10 @@ DEFAULT_VEHICLE_DATA_ACCESS_REFRESH_TIME = 1
 jwt_req_hist = {}
 uns_req_hist = {}
 s_req_hist = {}
-JWT_SPAM_COUNT = 5
-JWT_SPAM_TIME = 20
+JWT_SPAM_COUNT = 10
+JWT_SPAM_TIME = 60
 SPAM_COUNT = 10
-SPAM_TIME = 10
+SPAM_TIME = 60
 
 ###################
 #      tools      #
