@@ -9,6 +9,7 @@ from django.http import response
 
 
 def read(url_path, vehicle_data):
+    # filter 조건 없이 하나의 값만 get
     path_list = url_path.split("/")
     response_data = {}
 
@@ -17,7 +18,8 @@ def read(url_path, vehicle_data):
     for path in path_list:
         try:
             vehicle_data = vehicle_data[path]
-            #access sub-directory
+            # access sub-directory
+            # views.py로부터 전달받은 data를 이용해서 하위 directory로 반복해서 끝단까지 접근
         except:
             #fail to access sub-directory
             response_data = error_data
@@ -31,13 +33,15 @@ def read(url_path, vehicle_data):
         }
     }
     response_data['data'] = temp_data
+    #response 형식을 맞추기 위해 response_data['data']에 temp_data를 넣어주기 
 
     return response_data
 
 
 def search_read(url_path, vehicle_data, op_value = None):
-    # sub directory search
+    # sub directory search (애초에 request에서 중간 level까지 주고 + filter로 하위 path를 전달 (single 값이 아닌 경우도 O)
     op_value_list = []
+    # op_value가 여러개의 값으로 들어올 수 있음
     if type(op_value) is str:
         op_value_list.append(op_value)
         # print("op-value is str")
@@ -48,16 +52,18 @@ def search_read(url_path, vehicle_data, op_value = None):
         op_value_list = [None]
 
     final_response_data = []
-    print('out')
+    # print('out')
     for i in op_value_list:
-        print('in for loop')
+        # 각 단일 경로를 만들어주고, 해당 경로에 대해서 search를 실행
+        # print('in for loop')
         op_value = i
         if op_value != None: 
             search_url_path = url_path + "/" + op_value
+            # 실제로 접근해야할 path를 만들어주기 (기존 path + op_value로 들어온 하위 path)
         else:
             search_url_path = url_path
-        print(search_url_path) #make full url path ex. /Vehicle/Cabin/Door/*/*/IsOpen
-        path_list = search_url_path.split("/") # make url path into list to search each level
+        # print(search_url_path) #make full url path ex. /Vehicle/Cabin/Door/*/*/IsOpen
+        path_list = search_url_path.split("/") # 합쳐진 url path를 / 기준으로 잘라서 각 level에 접근할 수 있도록 list화 하기
         data_path = []
         response_data = [] # wildcard yes -> mutiple return value -> list
         if check_wildcard(search_url_path):
@@ -81,6 +87,7 @@ def search_read(url_path, vehicle_data, op_value = None):
                         break
                 else:
                     final_response_data.append(j)
+                    # 이번 단일 경로에 접근해서 얻어온 값을 final_response_data에 append
 
 
     if len(final_response_data) >= 2:
@@ -111,7 +118,7 @@ def recursive_read(vehicle_data, path_list, data_path, response_data, search_rea
     
     path_list_copy = copy.deepcopy(path_list)
     if len(path_list_copy) != 1:
-        # last path가 아닐 때
+        # last level이 아닐 때
         if path_list_copy[0] != "*": #not wildcard
             # data path : empty at first 
             data_path_copy = copy.deepcopy(data_path)
@@ -124,19 +131,19 @@ def recursive_read(vehicle_data, path_list, data_path, response_data, search_rea
             except:
                 print("no path")
 
-            # recursive_read(vehicle_data[path_list[0]], path_list_copy,
-            #                data_path_copy, response_data, search_read_type)
-            #path_list_copy에서 pop, path_list에서는 pop안함 -> path_list[0]를 vehicle_data 인자로 전달 
+            # recursive_read(vehicle_data[path_list[0]], path_list_copy,data_path_copy, response_data, search_read_type)
+            # path_list_copy에서 pop, path_list에서는 pop안함 -> path_list[0]를 vehicle_data 인자로 전달 
+            # pop한 path_list_copy를 다음 recursive_read의 path_list로 전달. 
         else: # with wildcard
             path_list_copy.pop(0) #일단 wildcard pop
             for path in vehicle_data: #passed vehicle data(decreased hierarchy level)
                 data_path_copy = copy.deepcopy(data_path)
-                data_path_copy.append(path) # wild card -> add additional paths to search with next hierarchy level 
+                data_path_copy.append(path) # 와일드카드가 있던 level의 모든 항목을 돌면서 recursive read하기 
                 recursive_read(vehicle_data[path], path_list_copy, data_path_copy, response_data, search_read_type)
-    else: #len(path_list_copy) == 1 : last path
+    else: #len(path_list_copy) == 1 : last level
 
         if path_list[0] in vehicle_data:
-            #if 'value' in vehicle_data[path_list[0]]: => Left 아래에는 IsOpen있지만, LeftCount 아래에는 IsOpen 없음
+            #if path_list[0] in vehicle_data: => Left 아래에는 IsOpen있지만, LeftCount 아래에는 IsOpen 없음
             if type(vehicle_data[path_list[0]]) == list:
                 # list type means last path is leaf node
                 last_path = path_list[0]
@@ -163,12 +170,14 @@ def recursive_read(vehicle_data, path_list, data_path, response_data, search_rea
                     print(response_data)
                     # single data
             else: # branch
+                #전달받은 path의 마지막 값인데, leaf node가 아닌 경우 
                 data_path.append(path_list[0])
 
                 if search_read_type == 'wildcard':
                     branch_data = response_data
                 elif search_read_type == 'no_wildcard':
                     branch_data = response_data
+                    # not deep copy -> recursive_branch_read에서 branch_data에 저장해도 response_data가 바뀐다.
                     # branch_data = []
 
 
@@ -182,6 +191,7 @@ def recursive_read(vehicle_data, path_list, data_path, response_data, search_rea
 
 def recursive_branch_read(vehicle_data, data_path, branch_data):
     for path in vehicle_data:
+        # 해당 level아래 있는 모든 값에 대해서 loop
         data_path_copy = copy.deepcopy(data_path)
         data_path_copy.append(path)
         #if 'value' in vehicle_data[path]:
@@ -315,6 +325,7 @@ def update(url_path, vehicle_data, request_data):
     response_data = {}
     ts = datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
     temp_vehicle_data = vehicle_data
+    # not deep copy
     # for path in path_list:
     #     temp_vehicle_data = temp_vehicle_data[path]
 
@@ -329,30 +340,30 @@ def update(url_path, vehicle_data, request_data):
 
     try:
         float(request_data['value'])
+        # update하려는 값이 float인 경우
         try:
             float(temp_vehicle_data[0]['value'])
+            # 대체하려는 값도 float -> success
         except:
+            # update하려는 값은 float인데, 대체하려는 값이 float이 아님
             return get_error_code("bad_request")
     except:
+        # update하려는 값이 float이 아님
         try:
             float(temp_vehicle_data[0]['value'])
+            # 대체하려는 값이 float임 -> error
             return get_error_code("bad_request")
         except:
+            # 대체하려는 값도 float이 아님 -> success
             pass
            
 
     temp_vehicle_data[0]['value'] = request_data['value']
     temp_vehicle_data[0]['ts'] = ts
-        
-    # if type(temp_vehicle_data[0]['value'])==request_data['value']:
-    #     print(type(temp_vehicle_data[0]['value']))
-    #     print(type(request_data['value']))
-    #     
-    # else:
-    #     return get_error_code("bad_request")
-
+   
     with open('viss/vss_final.json', 'w') as file_final:
         file_final.write(json.dumps(vehicle_data))
+        # 덮어쓰기 
 
     response_data['ts'] = ts
 

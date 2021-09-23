@@ -24,6 +24,7 @@ threading.Thread(target=Datagen_thread, args=(), daemon=True).start()
 
 # work 2: websocket_secured integration
 # work 3: websocket_unscured integration 
+# websocket server start
 import websockets
 from viss.websocket_secured import *
 from viss.websocket_unsecured import *
@@ -42,6 +43,7 @@ def Websocket_thread():
 threading.Thread(target=Websocket_thread, args=(), daemon=True).start()
 
 # work 4: urls
+# rest API로 들어오는 요청 처리 -> views.py로 넘겨줌
 from django.urls import path,include, re_path
 from rest_framework_simplejwt import views as jwt_views
 

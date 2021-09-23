@@ -17,11 +17,12 @@ from testdjango.settings import SIMPLE_JWT
 
 too_many_requests_Ips = {}
 too_many_attempts_Ips = {}
-working_subscriptionIds = {}
+working_subscriptionIds = {} # 현재 활성화되어있는 subscription의 id를 관리
 DEFAULT_VEHICLE_DATA_ACCESS_REFRESH_TIME = 1
-jwt_req_hist = {}
+jwt_req_hist = {} 
 uns_req_hist = {}
 s_req_hist = {}
+# for manage various IPaddress
 JWT_SPAM_COUNT = 10
 JWT_SPAM_TIME = 60
 SPAM_COUNT = 10
@@ -35,6 +36,7 @@ def read_vehicle_data():
         with open('viss/vss_final.json') as generated_data:
             return json.loads(generated_data.read())
     except:
+        # data generation과 겹칠 경우, 기다렸다가 다시 open <- 간헐적으로 data_generation과 동시에 open해서 error 발생했었음
         sleep(0.05)
         with open('viss/vss_final.json') as generated_data:
             return json.loads(generated_data.read())
@@ -89,12 +91,14 @@ def error_response_maker(number, reason, message):
 ###################
 async def sub_time_based(dl, websocket, subscriptionId):
     while subscriptionId in working_subscriptionIds:
+        # working_subscriptionIds에 해당 subscriptionId가 있는 이상, 반복
         final_json = sub_response_maker(dl)
         response_json = search_read(url_path_(dl), read_vehicle_data())
         for key in response_json:
             final_json[key] = response_json[key]
         await websocket.send(json.dumps(final_json))
         await asyncio.sleep(int(dl["filter"]["op-extra"]["period"]))
+        # period만큼 sleep했다가 반복
 
 async def sub_range(dl, websocket, subscriptionId):
     final_json = sub_response_maker(dl)
@@ -224,8 +228,10 @@ async def sub_curve_logging(dl, websocket, subscriptionId):
         del working_subscriptionIds[subscriptionId]
 
 def sub_manager(dl, vehicle_data, websocket, sessionId):
+    # subscription 요청이 들어왔을 때, request와 
     response_json = search_read(url_path_(dl), vehicle_data)
     print(response_json)
+    #일단 접근 가능한 경로인지 확인
     if "error" in response_json:
         return response_json
     subscriptionId = str(uuid.uuid1()) #mac addr and time based
