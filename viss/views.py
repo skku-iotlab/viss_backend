@@ -24,6 +24,7 @@ class UserThrottle(UserRateThrottle):
 @api_view(['GET', 'POST'])
 @throttle_classes([UserThrottle]) #SPAM
 def Vehicle(request):
+    # print("IN VEHICLE")
     with open('viss/vss_final.json') as generated_data:  # without children directory
         vehicle_data = json.loads(generated_data.read())
         # data_generator로 만든 vehicle data -> 추후에 각 함수에 전달
@@ -36,8 +37,7 @@ def Vehicle(request):
 
         # GET data
         if "filter" not in query_params:  # GET && no filter ex. GET /Vehicle/Speed HTTP/1.1
-            # just return single data
-            # filter없고, 단순히 하나의 값 read할 때
+            # just return single data & no filter
             response_data = read(url_path, vehicle_data)
         else:  # GET && yes filter
             query_params = json.loads(query_params["filter"])
@@ -71,6 +71,9 @@ def Vehicle(request):
             url_path = url_path[0:len(url_path)-1]
         if "filter" not in query_params:
             response_data = update(url_path, vehicle_data, request.data)
+            
+            
+    ########AFTER RETURN response_data#########        
     if "error" in response_data:
         # error 반환시, 404 status로 client에 응답
         return JsonResponse(response_data, status=404)
@@ -85,6 +88,7 @@ def Vehicle(request):
 @throttle_classes([UserThrottle]) #SPAM
 @permission_classes((IsAuthenticated, ))
 def Vehicle_AverageSpeed(request):
+    # print("IN VEHICLE_AVRG_SPEED")
     with open('viss/vss_final.json') as generated_data:
         vehicle_data = json.loads(generated_data.read())
     query_params = request.query_params.dict()

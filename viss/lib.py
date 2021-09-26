@@ -44,18 +44,14 @@ def search_read(url_path, vehicle_data, op_value = None):
     # op_value가 여러개의 값으로 들어올 수 있음
     if type(op_value) is str:
         op_value_list.append(op_value)
-        # print("op-value is str")
     elif type(op_value) is list:
         op_value_list = op_value
-        # print("op-value is list")
     else:
         op_value_list = [None]
 
     final_response_data = []
-    # print('out')
     for i in op_value_list:
         # 각 단일 경로를 만들어주고, 해당 경로에 대해서 search를 실행
-        # print('in for loop')
         op_value = i
         if op_value != None: 
             search_url_path = url_path + "/" + op_value
@@ -88,6 +84,7 @@ def search_read(url_path, vehicle_data, op_value = None):
                 else:
                     final_response_data.append(j)
                     # 이번 단일 경로에 접근해서 얻어온 값을 final_response_data에 append
+                    # 다음 op_value_list에 있는 값으로 다음 path를 만들어서 search해야함 -> append를 한 것임
 
 
     if len(final_response_data) >= 2:
@@ -186,7 +183,7 @@ def recursive_read(vehicle_data, path_list, data_path, response_data, search_rea
                     # vehicle_data[Row1] -> Left, LeftCount, Right, RightCount
                     # 지금까지 data_path
 
-                    #recursive_branch_read에 모든 하위 data append 
+                    #recursive_branch_read에서 모든 하위 data append 
 
 
 def recursive_branch_read(vehicle_data, data_path, branch_data):
@@ -222,6 +219,7 @@ def history_read(url_path, vehicle_data, op_value):
 
     error_data = get_error_code("invalid_path")
 
+    # request_time : 현재 시간(request_time) - 요청 시간(period)
     for key in period:
         if key == "days_ago":
             request_time = request_time - timedelta(days=period[key])
@@ -254,6 +252,7 @@ def history_read(url_path, vehicle_data, op_value):
             continue
         else:
             if datetime.strptime(data['ts'], "%Y-%m-%dT%H:%M:%SZ") > request_time:
+                # 계산된 request_time 이후에 나온 data들 append
                 response_data['data']['dp'].append(data)
                 #data만 append, path는 동일 
 
@@ -356,11 +355,11 @@ def update(url_path, vehicle_data, request_data):
         except:
             # 대체하려는 값도 float이 아님 -> success
             pass
-           
 
     temp_vehicle_data[0]['value'] = request_data['value']
     temp_vehicle_data[0]['ts'] = ts
-   
+    
+    
     with open('viss/vss_final.json', 'w') as file_final:
         file_final.write(json.dumps(vehicle_data))
         # 덮어쓰기 

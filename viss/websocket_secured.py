@@ -52,7 +52,6 @@ async def accept(websocket, path):
                 except jwt.ExpiredSignatureError:
                     response_json = get_error_code("token_expired", True)
                 except jwt.InvalidTokenError:
-
                     #jwt spam check start
                     #위의 too_many_request와 동일하게 SPAM_TIME과 SPAM_COUNT로 판단
                     try:
