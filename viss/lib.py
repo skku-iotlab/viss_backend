@@ -24,7 +24,7 @@ def read(url_path, vehicle_data):
             #fail to access sub-directory
             response_data = error_data
             return response_data
-     
+
     temp_data = {
         "path": url_path,
         "dp": {
