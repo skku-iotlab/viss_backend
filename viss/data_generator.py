@@ -147,7 +147,7 @@ def merge_datasets(json_new, json_old, max_length = 5):
             continue
     return temp
 
-def getVehicleData():
+def genVehicleData():
     with open('viss/vss_release_2.1.json') as file_origin:
         json_file = json.loads(file_origin.read())
         #print(sorted(recursive_get_all_datatype(json_file)))
@@ -156,12 +156,7 @@ def getVehicleData():
         #pprint.pprint(json_file)
         with open('viss/vss_final.json', 'w') as file_final:
             file_final.write(json.dumps(result))
-    return result
 
-def genVehicleData():
-    getVehicleData()
-    with open('viss/vss_release_2.1.json') as file_origin:
-        json_file = json.loads(file_origin.read())
         while(True):
             time.sleep(3)
             ts = datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
