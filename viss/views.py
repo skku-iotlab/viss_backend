@@ -8,7 +8,6 @@ from django.http import JsonResponse, response
 from rest_framework.decorators import api_view, permission_classes, authentication_classes, throttle_classes
 from rest_framework.throttling import UserRateThrottle
 from rest_framework.permissions import IsAuthenticated
-from rest_framework_jwt.authentication import JSONWebTokenAuthentication
 from viss.lib import *
 from viss.data_generator import *
 
