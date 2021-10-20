@@ -25,7 +25,7 @@ s_req_hist = {}
 # for manage various IPaddress
 JWT_SPAM_COUNT = 10
 JWT_SPAM_TIME = 60
-SPAM_COUNT = 10
+SPAM_COUNT = 20
 SPAM_TIME = 60
 
 ###################
@@ -51,11 +51,11 @@ def action_(json):
 def requestId_(json):
     return json["requestId"]
 
-def op_type_(json):
-    return json["filter"]["op-type"]
+def type_(json):
+    return json["filter"]["type"]
 
-def op_value_(json):
-    return json["filter"]["op-value"]
+def value_(json):
+    return json["filter"]["value"]
 
 def url_path_(json):
     url_path = json["path"][0:len(json["path"])]
@@ -97,20 +97,21 @@ async def sub_time_based(dl, websocket, subscriptionId):
         for key in response_json:
             final_json[key] = response_json[key]
         await websocket.send(json.dumps(final_json))
-        await asyncio.sleep(int(dl["filter"]["op-extra"]["period"]))
+        await asyncio.sleep(int(dl["filter"]["value"]["period"]))
         # period만큼 sleep했다가 반복
 
 async def sub_range(dl, websocket, subscriptionId):
     final_json = sub_response_maker(dl)
     logic_op_list = []
-    if type(dl["filter"]["op-extra"]) == dict:
-        logic_op_list.append(dl["filter"]["op-extra"]) # op-extra값이 여러개인 경우
+    if type(dl["filter"]["value"]) == dict:
+        logic_op_list.append(dl["filter"]["value"]) # op-extra값이 여러개인 경우
     else:
-        logic_op_list = dl["filter"]["op-extra"] # op-extra값이 1개인 경우
+        logic_op_list = dl["filter"]["value"] # op-extra값이 1개인 경우
     
     while True:
         if not(subscriptionId in working_subscriptionIds):
             break
+        print(logic_op_list)
         for condition in logic_op_list:
             logic_op = condition["logic-op"]
             boundary = float(condition["boundary"])
@@ -138,8 +139,8 @@ async def sub_range(dl, websocket, subscriptionId):
             for key in data:
                 final_json[key] = data[key]
             await websocket.send(json.dumps(final_json))
-            del working_subscriptionIds[subscriptionId] #완료 -> 해당 subscription 삭제
-            break
+            # del working_subscriptionIds[subscriptionId] #완료 -> 해당 subscription 삭제
+            # break
         # 이번 dp는 특정 조건에서 continue를 돌지 못하고 break로 빠져나옴: 대기 후 새로운 dp에 대하여 반복
         await asyncio.sleep(DEFAULT_VEHICLE_DATA_ACCESS_REFRESH_TIME)
 
@@ -147,10 +148,10 @@ async def sub_range(dl, websocket, subscriptionId):
 async def sub_change(dl, websocket, subscriptionId):
     final_json = sub_response_maker(dl)
     logic_op_list = []
-    if type(dl["filter"]["op-extra"]) == dict:
-        logic_op_list.append(dl["filter"]["op-extra"])
+    if type(dl["filter"]["value"]) == dict:
+        logic_op_list.append(dl["filter"]["value"])
     else:
-        logic_op_list = dl["filter"]["op-extra"]
+        logic_op_list = dl["filter"]["value"]
     data = read(url_path_(dl), read_vehicle_data())
     while True:
         if not(subscriptionId in working_subscriptionIds):
@@ -164,6 +165,7 @@ async def sub_change(dl, websocket, subscriptionId):
                 diff = float(condition["diff"])
                 current_diff = float(new_data['data']['dp']['value']) - float(data['data']['dp']['value'])
                 # given diff와 logic-op에 부합하는 값이 발생했을 때, response
+                print('init data:', float(data['data']['dp']['value']))
                 print("..........") #testcode
                 print(current_diff) #testcode
                 dp = float(data['data']['dp']['value'])
@@ -187,49 +189,50 @@ async def sub_change(dl, websocket, subscriptionId):
                 for key in data:
                     final_json[key] = new_data[key]
                 await websocket.send(json.dumps(final_json))
-                del working_subscriptionIds[subscriptionId]
-                break
+                # del working_subscriptionIds[subscriptionId]
+                # break
             # 이번 dp는 특정 조건에서 continue를 돌지 못하고 break로 빠져나옴: 대기 후 새로운 dp에 대하여 반복
             data = new_data
         await asyncio.sleep(DEFAULT_VEHICLE_DATA_ACCESS_REFRESH_TIME)
 
 async def sub_curve_logging(dl, websocket, subscriptionId):
     final_json = sub_response_maker(dl)
-    max_err = float(dl["filter"]["op-extra"]["max-err"])
-    buf_size = int(dl["filter"]["op-extra"]["buf-size"])
-    data_curve = Curve(bufferSize=buf_size, allowedError=max_err, errorType=Distance.VERTICAL)
-    time_recorder = []
+    max_err = float(dl["filter"]["value"]["maxerr"])
+    buf_size = int(dl["filter"]["value"]["bufsize"])
     data = read(url_path_(dl), read_vehicle_data())
     await asyncio.sleep(DEFAULT_VEHICLE_DATA_ACCESS_REFRESH_TIME)
-    j = 0
-    while j < buf_size:
-        if not(subscriptionId in working_subscriptionIds):
-            break
-        new_data = read(url_path_(dl), read_vehicle_data())
-        if new_data['data']['dp']['ts'] == data['data']['dp']['ts']:
-            pass
+    while True:
+        data_curve = Curve(bufferSize=buf_size, allowedError=max_err, errorType=Distance.VERTICAL)
+        time_recorder = []
+        j = 0
+        while j < buf_size:
+            if not(subscriptionId in working_subscriptionIds):
+                break
+            new_data = read(url_path_(dl), read_vehicle_data())
+            if new_data['data']['dp']['ts'] == data['data']['dp']['ts']:
+                pass
+            else:
+                time_recorder.append(data['data']['dp']['ts'])
+                data_curve.add_point(j, float(data['data']['dp']['value']))
+                print('buffer #', j, float(data['data']['dp']['value'])) #testcode
+                j += 1
+            data = new_data
+            await asyncio.sleep(DEFAULT_VEHICLE_DATA_ACCESS_REFRESH_TIME)
         else:
-            time_recorder.append(data['data']['dp']['ts'])
-            data_curve.add_point(j, float(data['data']['dp']['value']))
-            print('buffer #', j, float(data['data']['dp']['value'])) #testcode
-            j += 1
-        data = new_data
-        await asyncio.sleep(DEFAULT_VEHICLE_DATA_ACCESS_REFRESH_TIME)
-    else:
-        output_data = data_curve.get_reduced_points()
-        response_json = {}
-        response_json["data"] = {}
-        response_json["data"]["path"] = url_path_(dl)
-        response_json["data"]["dp"] = []
-        for i in range(0, len(output_data)):
-            dp = {}
-            dp["ts"] = time_recorder[output_data[i][0]]
-            dp["value"] = output_data[i][1]
-            response_json["data"]["dp"].append(dp)
-        for key in response_json:
-            final_json[key] = response_json[key]
-        await websocket.send(json.dumps(final_json))
-        del working_subscriptionIds[subscriptionId]
+            output_data = data_curve.get_reduced_points()
+            response_json = {}
+            response_json["data"] = {}
+            response_json["data"]["path"] = url_path_(dl)
+            response_json["data"]["dp"] = []
+            for i in range(0, len(output_data)):
+                dp = {}
+                dp["ts"] = time_recorder[output_data[i][0]]
+                dp["value"] = output_data[i][1]
+                response_json["data"]["dp"].append(dp)
+            for key in response_json:
+                final_json[key] = response_json[key]
+            await websocket.send(json.dumps(final_json))
+            # del working_subscriptionIds[subscriptionId]
 
 def sub_manager(dl, vehicle_data, websocket, sessionId):
     # subscription 요청이 들어왔을 때, request와 
@@ -242,11 +245,11 @@ def sub_manager(dl, vehicle_data, websocket, sessionId):
     working_subscriptionIds[subscriptionId] = sessionId
     # subscription Id 생성
 
-    print(op_type_(dl))
-    if op_type_(dl) != "capture":
-        return get_error_code("filter_invalid", True)
+    print(type_(dl))
+    # if type_(dl) != "capture":
+    #     return get_error_code("filter_invalid", True)
 
-    if op_value_(dl) == "time-based":
+    if type_(dl) == "timebased":
         task = asyncio.create_task(sub_time_based(dl, websocket, subscriptionId))
         #range, change, curve-logging과 다르게 data type에 의한 제한 없음
 
@@ -261,13 +264,13 @@ def sub_manager(dl, vehicle_data, websocket, sessionId):
                 # range, change, curve-logging sub하려는 target값이 float또는 boolean이 아닐때 -> error
                 return get_error_code("invalid_path", True)
 
-        if op_value_(dl) == "range":
+        if type_(dl) == "range":
             #error check start
             logic_op_list = []
-            if type(dl["filter"]["op-extra"]) == dict:
-                logic_op_list.append(dl["filter"]["op-extra"])
+            if type(dl["filter"]["value"]) == dict:
+                logic_op_list.append(dl["filter"]["value"])
             else:
-                logic_op_list = dl["filter"]["op-extra"]
+                logic_op_list = dl["filter"]["value"]
             for condition in logic_op_list:
                 logic_op = condition["logic-op"]
                 boundary = condition["boundary"]
@@ -281,13 +284,13 @@ def sub_manager(dl, vehicle_data, websocket, sessionId):
 
             task = asyncio.create_task(sub_range(dl, websocket, subscriptionId))
 
-        elif op_value_(dl) == "change":
+        elif type_(dl) == "change":
             #error check start
             logic_op_list = []
-            if type(dl["filter"]["op-extra"]) == dict:
-                logic_op_list.append(dl["filter"]["op-extra"])
+            if type(dl["filter"]["value"]) == dict:
+                logic_op_list.append(dl["filter"]["value"])
             else:
-                logic_op_list = dl["filter"]["op-extra"]
+                logic_op_list = dl["filter"]["value"]
             for condition in logic_op_list:
                 logic_op = condition["logic-op"]
                 diff = condition["diff"]
@@ -301,12 +304,12 @@ def sub_manager(dl, vehicle_data, websocket, sessionId):
 
             task = asyncio.create_task(sub_change(dl, websocket, subscriptionId))
 
-        elif op_value_(dl) == "curve-logging":
+        elif type_(dl) == "curvelog":
             
             #error check start
             try:
-                maxerr = float(dl["filter"]["op-extra"]["max-err"])
-                bufsize = float(dl["filter"]["op-extra"]["buf-size"])
+                maxerr = float(dl["filter"]["value"]["maxerr"])
+                bufsize = float(dl["filter"]["value"]["bufsize"])
             except:
                 return get_error_code("filter_invalid")      
             if maxerr < 0:
@@ -343,14 +346,14 @@ def get_response_based_on_request(dl, vehicle_data, websocket, sessionId):
         if "filter" not in dl:
             return read(url_path_(dl), vehicle_data)
         else:
-            if op_type_(dl) == 'paths':
-                return search_read(url_path_(dl), vehicle_data, op_value_(dl))
-            elif op_type_(dl) == 'history':
-                return history_read(url_path_(dl), vehicle_data, op_value_(dl))
-            elif op_type_(dl) == 'metadata':
+            if type_(dl) == 'paths':
+                return search_read(url_path_(dl), vehicle_data, value_(dl))
+            elif type_(dl) == 'history':
+                return history_read(url_path_(dl), vehicle_data, value_(dl))
+            elif type_(dl) == 'static-metadata':
                 with open('viss/vss_release_2.1.json') as file_origin:
                     vss_json_file = json.loads(file_origin.read())
-                return service_discovery_read(url_path_(dl), vss_json_file, op_value_(dl))
+                return service_discovery_read(url_path_(dl), vss_json_file, value_(dl))
             else:
                 return get_error_code("filter_invalid", True)
     elif action_(dl) == 'set':

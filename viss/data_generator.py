@@ -158,7 +158,7 @@ def genVehicleData():
             file_final.write(json.dumps(result))
 
         while(True):
-            time.sleep(3)
+            time.sleep(1)
             ts = datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
             with open('viss/vss_final.json') as generated_data:  # without children directory
                 old = json.loads(generated_data.read())

@@ -14,27 +14,24 @@ def read(url_path, vehicle_data):
     response_data = {}
 
     error_data = get_error_code("invalid_path")
-
-    for path in path_list:
-        try:
+    try:
+        for path in path_list:
             vehicle_data = vehicle_data[path]
             # access sub-directory
             # views.py로부터 전달받은 data를 이용해서 하위 directory로 반복해서 끝단까지 접근
-        except:
-            #fail to access sub-directory
-            response_data = error_data
-            return response_data
-
-    temp_data = {
-        "path": url_path,
-        "dp": {
-            "value": vehicle_data[0]['value'],
-            "ts": vehicle_data[0]['ts']
+        temp_data = {
+            "path": url_path,
+            "dp": {
+                "value": vehicle_data[0]['value'],
+                "ts": vehicle_data[0]['ts']
+            }
         }
-    }
-    response_data['data'] = temp_data
-    #response 형식을 맞추기 위해 response_data['data']에 temp_data를 넣어주기 
-
+        response_data['data'] = temp_data
+        #response 형식을 맞추기 위해 response_data['data']에 temp_data를 넣어주기 
+    except:
+        #fail to access sub-directory
+        response_data = error_data
+        return response_data
     return response_data
 
 
@@ -288,7 +285,7 @@ def service_discovery_read(url_path, vss_json_file, op_value):
 
     error_data = get_error_code("invalid_path")
 
-    if op_value == 'static':
+    if op_value == '':
         path_list = url_path.split("/")
         for path in path_list:
             if 'children' in vss_json_file:

@@ -41,15 +41,15 @@ def Vehicle(request):
             response_data = read(url_path, vehicle_data)
         else:  # GET && yes filter
             query_params = json.loads(query_params["filter"])
-            op_type = query_params["op-type"]
-            op_value = query_params["op-value"]
+            op_type = query_params["type"]
+            op_value = query_params["value"]
             print(op_value)
             print(type(op_value))
-            ###ADDED by JUNE###
-            if "," in op_value:
-                op_value = op_value.split(',')
-                print(op_value)
-            ###ADDED by JUNE###
+            # ###ADDED by JUNE###
+            # if "," in op_value:
+            #     op_value = op_value.split(',')
+            #     print(op_value)
+            # ###ADDED by JUNE###
 
             if op_type == 'paths':
                 # paths -> sub directory search
@@ -57,7 +57,7 @@ def Vehicle(request):
             elif op_type == 'history':
                 # history -> 과거의 값들을 가져오기
                 response_data = history_read(url_path, vehicle_data, op_value)
-            elif op_type == 'metadata':
+            elif op_type == 'static-metadata':
                 # metadata 해당 경로의 metadata를 가져오기
                 with open('viss/vss_release_2.1.json') as file_origin:
                     vss_json_file = json.loads(file_origin.read())
@@ -99,8 +99,8 @@ def Vehicle_AverageSpeed(request):
         response_data = read(url_path, vehicle_data)
     else:
         query_params = json.loads(query_params["filter"])
-        op_type = query_params["op-type"]
-        op_value = query_params["op-value"]
+        op_type = query_params["type"]
+        op_value = query_params["value"]
         if op_type == 'paths':
             response_data = search_read(url_path, vehicle_data, op_value)
         elif op_type == 'history':

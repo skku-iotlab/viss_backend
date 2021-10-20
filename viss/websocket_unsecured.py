@@ -51,7 +51,6 @@ async def accept_unsecured(websocket, path):
                 # WEEK POINT: possible hazard
                 response_json = get_error_code(
                     response_json["Error Reason"], True)
-
             final_json = default_response_maker(dl)
             for key in response_json:
                 final_json[key] = response_json[key]
