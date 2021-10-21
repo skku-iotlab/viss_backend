@@ -156,6 +156,7 @@ async def sub_change(dl, websocket, subscriptionId):
     while True:
         if not(subscriptionId in working_subscriptionIds):
             break
+        print('init data:', data['data']['dp']['value'])
         new_data = read(url_path_(dl), read_vehicle_data())
         if new_data['data']['dp']['ts'] == data['data']['dp']['ts']:
             pass
@@ -192,7 +193,7 @@ async def sub_change(dl, websocket, subscriptionId):
                 # del working_subscriptionIds[subscriptionId]
                 # break
             # 이번 dp는 특정 조건에서 continue를 돌지 못하고 break로 빠져나옴: 대기 후 새로운 dp에 대하여 반복
-            data = new_data
+            # data = new_data
         await asyncio.sleep(DEFAULT_VEHICLE_DATA_ACCESS_REFRESH_TIME)
 
 async def sub_curve_logging(dl, websocket, subscriptionId):
