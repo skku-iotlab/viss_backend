@@ -289,7 +289,7 @@ def service_discovery_read(url_path, vss_json_file, op_value):
         path_list = url_path.split("/")
         for path in path_list:
             if 'children' in vss_json_file:
-                # print("vss_json_file1111")
+                # print("vss_json_file11111")
                 try:
                     vss_json_file=vss_json_file['children']
                 except:
