@@ -68,7 +68,7 @@ def Vehicle(request):
                 # metadata 해당 경로의 metadata를 가져오기
                 response_data = service_discovery_read_2(url_path, vehicle_metadata, op_value)
             else:
-                # filter가 paths, history, metadata가 아닌 경우 filter_invalid 에러 
+                # filter가 paths, history, metadata가 아닌 경우 filter_invalid 에러 #
                 response_data = get_error_code("filter_invalid")
     elif request.method == 'POST':
         if url_path[len(url_path)-1] == "/":
