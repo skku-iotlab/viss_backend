@@ -13,6 +13,7 @@ async def accept_unsecured(websocket, path):
             dl = json.loads(data)
             response_json = {}
             vehicle_data = read_vehicle_data()
+            vehicle_metadata = read_vehicle_metadata()
 
             #spam check start
             try:
@@ -44,9 +45,9 @@ async def accept_unsecured(websocket, path):
             #spam check end
 
             response_json = get_response_based_on_request(
-                dl, vehicle_data, websocket, sessionId)
+                dl, vehicle_data, vehicle_metadata, websocket, sessionId)
             # dl : data from client = request
-
+            print(response_json)
             if "Error Code" in response_json:
                 # WEEK POINT: possible hazard
                 response_json = get_error_code(

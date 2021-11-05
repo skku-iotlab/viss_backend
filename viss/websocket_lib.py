@@ -41,6 +41,16 @@ def read_vehicle_data():
         with open('viss/vss_final.json') as generated_data:
             return json.loads(generated_data.read())
 
+def read_vehicle_metadata():
+    try:
+        with open('viss/vss_metadata.json') as generated_data:
+            return json.loads(generated_data.read())
+    except:
+        # data generation과 겹칠 경우, 기다렸다가 다시 open <- 간헐적으로 data_generation과 동시에 open해서 error 발생했었음
+        sleep(0.05)
+        with open('viss/vss_metadata.json') as generated_data:
+            return json.loads(generated_data.read())
+
 def is_request_authorized(json):
     if "authorization" in json: return True
     else: return False
@@ -342,7 +352,7 @@ def unsub_manager(dl, sessionId):
 # request handler #
 ###################
 
-def get_response_based_on_request(dl, vehicle_data, websocket, sessionId):
+def get_response_based_on_request(dl, vehicle_data, vehicle_metadata, websocket, sessionId):
     if action_(dl) == 'get':
         if "filter" not in dl:
             return read(url_path_(dl), vehicle_data)
@@ -355,6 +365,9 @@ def get_response_based_on_request(dl, vehicle_data, websocket, sessionId):
                 with open('viss/vss_release_2.1.json') as file_origin:
                     vss_json_file = json.loads(file_origin.read())
                 return service_discovery_read(url_path_(dl), vss_json_file, value_(dl))
+            elif type_(dl) == 'dynamic-metadata':
+                # metadata 해당 경로의 metadata를 가져오기
+                return service_discovery_read_2(url_path_(dl), vehicle_metadata, value_(dl))
             else:
                 return get_error_code("filter_invalid", True)
     elif action_(dl) == 'set':

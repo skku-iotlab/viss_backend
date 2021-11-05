@@ -27,6 +27,10 @@ def Vehicle(request):
     with open('viss/vss_final.json') as generated_data:  # without children directory
         vehicle_data = json.loads(generated_data.read())
         # data_generator로 만든 vehicle data -> 추후에 각 함수에 전달
+
+    with open('viss/vss_metadata.json') as generated_data:  # without children directory
+        vehicle_metadata = json.loads(generated_data.read())
+        # data_generator로 만든 vehicle data -> 추후에 각 함수에 전달
     query_params = request.query_params.dict()
 
     url_path = request.path[1:len(request.path)]
@@ -42,8 +46,6 @@ def Vehicle(request):
             query_params = json.loads(query_params["filter"])
             op_type = query_params["type"]
             op_value = query_params["value"]
-            print(op_value)
-            print(type(op_value))
             # ###ADDED by JUNE###
             # if "," in op_value:
             #     op_value = op_value.split(',')
@@ -62,6 +64,9 @@ def Vehicle(request):
                     vss_json_file = json.loads(file_origin.read())
                 response_data = service_discovery_read(
                     url_path, vss_json_file, op_value)
+            elif op_type == 'dynamic-metadata':
+                # metadata 해당 경로의 metadata를 가져오기
+                response_data = service_discovery_read_2(url_path, vehicle_metadata, op_value)
             else:
                 # filter가 paths, history, metadata가 아닌 경우 filter_invalid 에러 
                 response_data = get_error_code("filter_invalid")

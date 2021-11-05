@@ -313,6 +313,58 @@ def service_discovery_read(url_path, vss_json_file, op_value):
 
     return response_data
 
+def service_discovery_read_2(url_path, vehicle_metadata, op_value):
+    # filter 조건 없이 하나의 값만 get
+    path_list = url_path.split("/")
+    response_data = {}
+
+    if op_value == '':
+        op_value = ["samplerate", "availability", "validate"]
+
+    delete_value = []
+    for value in ["samplerate", "availability", "validate"]:
+        if value not in op_value:
+            delete_value.append(value)
+
+    error_data = get_error_code("invalid_path")
+    try:
+        for path in path_list:
+            vehicle_metadata = vehicle_metadata[path]
+            # access sub-directory
+            # views.py로부터 전달받은 data를 이용해서 하위 directory로 반복해서 끝단까지 접근
+        metadata = {}
+        children_metadata = {}
+
+        for key in vehicle_metadata:
+            if key in op_value:
+                metadata[key] = vehicle_metadata[key]
+            else: 
+                children_metadata[key] = vehicle_metadata[key]
+        
+        delete_metadata(children_metadata, delete_value)
+
+        temp_data = {
+            "metadata": {
+                path_list[-1]: metadata,
+                'children': children_metadata
+            },
+            "ts": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
+        }
+        response_data['data'] = temp_data
+        #response 형식을 맞추기 위해 response_data['data']에 temp_data를 넣어주기 
+    except:
+        #fail to access sub-directory
+        response_data = error_data
+        return response_data
+    return response_data
+
+def delete_metadata(children_metadata, delete_value):
+    children_metadata_copy = copy.deepcopy(children_metadata)
+    for key in children_metadata_copy:
+        if key in delete_value:
+            children_metadata.pop(key)
+        if key not in ["samplerate", "availability", "validate"]:
+            delete_metadata(children_metadata[key], delete_value)
 
 def update(url_path, vehicle_data, request_data):
     path_list = url_path.split("/")

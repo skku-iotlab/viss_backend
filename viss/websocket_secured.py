@@ -12,6 +12,7 @@ async def accept(websocket, path):
             dl = json.loads(data)
             response_json = {}
             vehicle_data = read_vehicle_data()
+            vehicle_metadata = read_vehicle_metadata()
             #spam check start
             try:
                 # 특정 clientIp 마다 request history를 time으로 저장
@@ -48,7 +49,7 @@ async def accept(websocket, path):
                         dl["authorization"], SIMPLE_JWT['SIGNING_KEY'], SIMPLE_JWT['ALGORITHM'])
                     print(body)
                     response_json = get_response_based_on_request(
-                        dl, vehicle_data, websocket, sessionId)
+                        dl, vehicle_data, vehicle_metadata, websocket, sessionId)
                 except jwt.ExpiredSignatureError:
                     response_json = get_error_code("token_expired", True)
                 except jwt.InvalidTokenError:

@@ -15,12 +15,17 @@ Including another URLconf
 """
 # work 1:
 from viss.data_generator import *
+from viss.metadata_generator import *
 import threading
 
 def Datagen_thread():
     genVehicleData()
 
+def Metadatagen_thread():
+    genVehicleMetadata()
+
 threading.Thread(target=Datagen_thread, args=(), daemon=True).start()
+threading.Thread(target=Metadatagen_thread, args=(), daemon=True).start()
 
 # work 2: websocket_secured integration
 # work 3: websocket_unscured integration 
@@ -34,9 +39,9 @@ start_server_A = websockets.serve(accept, "127.0.0.1", 3001)
 start_server_B = websockets.serve(accept_unsecured, "127.0.0.1", 3002)   
 
 def Websocket_thread():
-    print("WS_secured server: ws://127.0.0.1:3001")
+    print("WS_secured server: wss://127.0.0.1:3001")
     loop.run_until_complete(start_server_A)
-    print("WS_unsecured server: ws://127.0.0.1:3002")
+    print("WS_unsecured server: wss://127.0.0.1:3002")
     loop.run_until_complete(start_server_B)
     loop.run_forever()
 
