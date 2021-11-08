@@ -35,13 +35,13 @@ from viss.websocket_secured import *
 from viss.websocket_unsecured import *
 
 loop = asyncio.get_event_loop()
-start_server_A = websockets.serve(accept, "127.0.0.1", 3001)   
-start_server_B = websockets.serve(accept_unsecured, "127.0.0.1", 3002)   
+start_server_A = websockets.serve(accept, "0.0.0.0", 3001)   
+start_server_B = websockets.serve(accept_unsecured, "0.0.0.0", 3002)   
 
 def Websocket_thread():
-    print("WS_secured server: wss://127.0.0.1:3001")
+    print("WS_secured server: wss://0.0.0.0:3001")
     loop.run_until_complete(start_server_A)
-    print("WS_unsecured server: wss://127.0.0.1:3002")
+    print("WS_unsecured server: wss://0.0.0.0:3002")
     loop.run_until_complete(start_server_B)
     loop.run_forever()
 

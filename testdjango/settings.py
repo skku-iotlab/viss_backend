@@ -39,7 +39,11 @@ ALLOWED_HOSTS = ['*']
 
 CORS_ORIGIN_WHITELIST = (
     'http://localhost:3000',
-    'http://127.0.0.1:3000'
+    'http://127.0.0.1:3000',
+    'https://www.viss.cloud',
+    'http://www.viss.cloud',
+    'https://viss.cloud',
+    'http://viss.cloud'
 )
 
 # Application definition
@@ -53,7 +57,8 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'corsheaders',            # add this
-    'viss'
+    'viss',
+    'sslserver'
 ]
 
 MIDDLEWARE = [
