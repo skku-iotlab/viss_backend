@@ -1,6 +1,7 @@
 asgiref==3.4.1
 Django==3.2.5
 django-cors-headers==3.7.0
+django-sslserver==0.22
 djangorestframework==3.12.4
 djangorestframework-simplejwt==5.0.0
 numpy==1.21.0
